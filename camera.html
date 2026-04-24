@@ -1,78 +1,281 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>整備記録カメラ</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; text-align: center; background: #f4f7f6; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; background-color: #007bff; color: white; padding: 14px; margin: 10px 0; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; }
-        button:disabled { background-color: #cccccc; }
-        #preview { width: 100%; max-width: 400px; margin-top: 10px; border: 2px dashed #bbb; border-radius: 8px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>整備記録カメラ v2</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    margin: 0; padding: 16px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); min-height: 100vh; color: #333; }
+  .card { background: white; border-radius: 16px; padding: 20px; max-width: 520px; margin: 0 auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  h1 { margin: 0 0 4px; font-size: 22px; color: #1e3a8a; text-align: center; }
+  .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
+  .auth-bar { background: #f3f4f6; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .auth-status { font-size: 13px; font-weight: 700; }
+  .auth-user { font-size: 11px; color: #666; }
+  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-top: 12px; margin-bottom: 4px; }
+  input[type=text], textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: 16px; font-family: inherit; }
+  textarea { min-height: 60px; resize: vertical; }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px;
+    font-weight: 700; cursor: pointer; margin-top: 10px; }
+  .btn-primary { background: #3b82f6; color: white; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-success:disabled, .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-sm { padding: 8px 12px; font-size: 13px; width: auto; margin-top: 0; background: #6b7280; color: white;
+    border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .camera-area { border: 2px dashed #9ca3af; border-radius: 12px; padding: 16px; text-align: center;
+    margin-top: 6px; background: #f9fafb; }
+  .camera-btn { display: inline-block; background: #ef4444; color: white; padding: 14px 20px;
+    border-radius: 40px; font-weight: 700; font-size: 15px; cursor: pointer; border: none; }
+  #fileInput { display: none; }
+  #preview { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; margin-top: 12px;
+    display: none; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827;
+    color: white; padding: 12px 20px; border-radius: 10px; z-index: 999; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center; }
+  .toast.success { background: #059669; }
+  .toast.error { background: #dc2626; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none;
+    align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .modal.open { display: flex; }
+  .modal-card { background: white; border-radius: 12px; padding: 20px; max-width: 480px; width: 100%;
+    max-height: 90vh; overflow-y: auto; }
+  .progress { display: none; text-align: center; padding: 10px; background: #eff6ff; color: #1e40af;
+    border-radius: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; }
+  .hint { font-size: 12px; color: #6b7280; margin-top: 4px; }
+</style>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <h2>整備記録カメラ</h2>
-    <input type="text" id="koujiName" placeholder="工事名 (例: A工場定修)">
-    <input type="text" id="kikiName" placeholder="機器名 (例: ポンプP-101)">
-    <textarea id="comment" placeholder="コメントを入力"></textarea>
-    
+<div class="card">
+  <h1>📷 整備記録カメラ</h1>
+  <p class="subtitle">Google Drive に自動整理・写真台帳に記録</p>
+
+  <div class="auth-bar">
+    <div>
+      <div class="auth-status" id="authStatus">未ログイン</div>
+      <div class="auth-user" id="authUser"></div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm" onclick="openSettings()">⚙️ 設定</button>
+      <button class="btn-sm" id="loginBtn" onclick="doLogin()" style="background:#3b82f6">🔑 ログイン</button>
+    </div>
+  </div>
+
+  <label>工事名 <span style="color:red">*</span></label>
+  <input type="text" id="kouji" placeholder="例: A工場定修">
+
+  <label>機器名 <span style="color:red">*</span></label>
+  <input type="text" id="kiki" placeholder="例: ポンプP-101">
+
+  <label>コメント</label>
+  <textarea id="comment" placeholder="メモ・所見など（任意）"></textarea>
+
+  <label>写真 <span style="color:red">*</span></label>
+  <div class="camera-area">
     <input type="file" id="fileInput" accept="image/*" capture="environment">
-    <img id="preview" style="display:none;">
-    
-    <button id="submitBtn">Googleドライブへ保存</button>
+    <label for="fileInput" class="camera-btn">📷 撮影 / 選択</label>
+    <img id="preview">
+  </div>
+  <p class="hint">💡 スマホではタップでカメラが起動します</p>
 
-    <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxY_UrDhAA-lUUotaZvJyUJPXi4Q_7Ujpr-uQm6j0ZJ62cJMosvi-gdUdFlcvI9jAI4eg/exec";
-        const fileInput = document.getElementById('fileInput');
-        const preview = document.getElementById('preview');
-        const submitBtn = document.getElementById('submitBtn');
-        let base64Image = "";
+  <div class="progress" id="progress"></div>
 
-        fileInput.addEventListener('change', e => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = () => {
-                base64Image = reader.result;
-                preview.src = base64Image;
-                preview.style.display = "block";
-            };
-            reader.readAsDataURL(file);
-        });
+  <button class="btn btn-success" id="submitBtn" onclick="doSubmit()" disabled>☁️ Google Drive に保存</button>
+</div>
 
-        submitBtn.addEventListener('click', async () => {
-            const kouji = document.getElementById('koujiName').value;
-            const kiki = document.getElementById('kikiName').value;
-            const comment = document.getElementById('comment').value;
+<div class="modal" id="settingsModal">
+  <div class="modal-card">
+    <h2 style="margin-top:0">⚙️ 設定</h2>
+    <p class="hint">整備記録アプリと同じ Client ID / Spreadsheet ID を使えます。</p>
+    <label>Google Client ID <span style="color:red">*</span></label>
+    <input type="text" id="cfgClientId" placeholder="xxx.apps.googleusercontent.com">
+    <label>Spreadsheet ID <small style="color:#666">(写真台帳を残す場合)</small></label>
+    <input type="text" id="cfgSpreadsheetId" placeholder="スプレッドシートID">
+    <label>Drive 保存先ルートフォルダ名</label>
+    <input type="text" id="cfgRootFolder" value="整備写真">
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn-sm" onclick="closeSettings()">キャンセル</button>
+      <button class="btn-sm" style="background:#10b981" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
 
-            if (!kouji || !kiki || !base64Image) {
-                alert("工事名、機器名、写真をすべて入力してください");
-                return;
-            }
+<script>
+const CONFIG_KEY='gs_maint_config_v1';
+const USER_KEY='gs_maint_user_v1';
+const SCOPES='https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+let config={clientId:'',spreadsheetId:'',rootFolder:'整備写真'};
+let accessToken=null, tokenClient=null, base64Image='', imageFile=null;
 
-            submitBtn.disabled = true;
-            submitBtn.innerText = "送信中...";
-
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        koujiName: kouji,
-                        kikiName: kiki,
-                        photo: base64Image,
-                        comment: comment
-                    })
-                });
-                const result = await response.json();
-                alert("保存成功！フォルダに格納されました。");
-                location.reload();
-            } catch (error) {
-                alert("エラーが発生しました: " + error);
-                submitBtn.disabled = false;
-                submitBtn.innerText = "保存に失敗しました";
-            }
-        });
-    </script>
+function loadConfig(){
+  try{const raw=localStorage.getItem(CONFIG_KEY); if(raw){config=Object.assign(config,JSON.parse(raw));}
+    if(!config.rootFolder)config.rootFolder='整備写真';}catch(e){}
+  const user=localStorage.getItem(USER_KEY); if(user)document.getElementById('authUser').textContent=user;
+}
+function saveConfigLS(){localStorage.setItem(CONFIG_KEY,JSON.stringify(config));}
+function openSettings(){
+  document.getElementById('cfgClientId').value=config.clientId||'';
+  document.getElementById('cfgSpreadsheetId').value=config.spreadsheetId||'';
+  document.getElementById('cfgRootFolder').value=config.rootFolder||'整備写真';
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+function saveSettings(){
+  config.clientId=document.getElementById('cfgClientId').value.trim();
+  config.spreadsheetId=document.getElementById('cfgSpreadsheetId').value.trim();
+  config.rootFolder=document.getElementById('cfgRootFolder').value.trim()||'整備写真';
+  saveConfigLS(); closeSettings(); toast('✅ 設定を保存しました','success');
+  initTokenClient(); updateUI();
+}
+function initTokenClient(){
+  if(!config.clientId)return;
+  if(typeof google==='undefined'||!google.accounts)return;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:config.clientId, scope:SCOPES,
+    callback:(resp)=>{
+      if(resp.access_token){accessToken=resp.access_token;
+        fetchUserEmail().then(()=>{updateUI(); toast('✅ ログインしました','success');});
+      }else if(resp.error){toast('ログインエラー: '+resp.error,'error');}
+    }
+  });
+}
+async function fetchUserEmail(){
+  try{const r=await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{Authorization:'Bearer '+accessToken}});
+    const d=await r.json(); if(d.email){localStorage.setItem(USER_KEY,d.email);
+      document.getElementById('authUser').textContent=d.email;}}catch(e){console.error(e);}
+}
+function doLogin(){
+  if(!config.clientId){toast('⚙️ まず設定で Client ID を入力してください','error'); openSettings(); return;}
+  if(!tokenClient)initTokenClient();
+  if(!tokenClient){toast('Google APIが読み込み中です。もう一度お試しください','error'); return;}
+  tokenClient.requestAccessToken({prompt:''});
+}
+function doLogout(){
+  if(accessToken)try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
+  accessToken=null; localStorage.removeItem(USER_KEY);
+  document.getElementById('authUser').textContent=''; updateUI(); toast('ログアウトしました','');
+}
+function updateUI(){
+  const loggedIn=!!accessToken;
+  document.getElementById('authStatus').textContent=loggedIn?'ログイン中 ✅':'未ログイン';
+  const btn=document.getElementById('loginBtn');
+  btn.textContent=loggedIn?'🔓 ログアウト':'🔑 ログイン';
+  btn.style.background=loggedIn?'#6b7280':'#3b82f6';
+  btn.onclick=loggedIn?doLogout:doLogin;
+  document.getElementById('submitBtn').disabled=!loggedIn||!base64Image;
+}
+function toast(msg,type){
+  const t=document.createElement('div'); t.className='toast'+(type?' '+type:''); t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  loadConfig();
+  document.getElementById('fileInput').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f)return; imageFile=f;
+    const r=new FileReader();
+    r.onload=()=>{base64Image=r.result;
+      const p=document.getElementById('preview'); p.src=base64Image; p.style.display='block'; updateUI();};
+    r.readAsDataURL(f);
+  });
+  setTimeout(()=>{if(typeof google!=='undefined'&&google.accounts)initTokenClient();},500);
+});
+async function findOrCreateFolder(name,parentId){
+  const esc=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  let q=`name='${esc}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if(parentId)q+=` and '${parentId}' in parents`;
+  const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,name)',
+    {headers:{Authorization:'Bearer '+accessToken}});
+  const d=await r.json(); if(d.files&&d.files.length>0)return d.files[0].id;
+  const body={name:name,mimeType:'application/vnd.google-apps.folder'};
+  if(parentId)body.parents=[parentId];
+  const c=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',
+    {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const cd=await c.json(); return cd.id;
+}
+async function uploadPhoto(folderId,filename,file){
+  const boundary='-------314159265358979323846';
+  const delim="\r\n--"+boundary+"\r\n";
+  const closeDelim="\r\n--"+boundary+"--";
+  const metadata={name:filename,parents:[folderId]};
+  const base64Data=base64Image.split(',')[1];
+  const contentType=file.type||'image/jpeg';
+  const body=delim+'Content-Type: application/json\r\n\r\n'+JSON.stringify(metadata)+
+    delim+'Content-Type: '+contentType+'\r\nContent-Transfer-Encoding: base64\r\n\r\n'+base64Data+closeDelim;
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name',
+    {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'multipart/related; boundary="'+boundary+'"'},body:body});
+  if(!r.ok){const t=await r.text(); throw new Error('アップロード失敗 '+r.status+': '+t);}
+  return r.json();
+}
+async function ensurePhotoSheet(){
+  if(!config.spreadsheetId)return false;
+  const SN='写真台帳';
+  const HD=['撮影日時','工事名','機器名','コメント','ファイル名','ファイルID','共有URL','保存者'];
+  try{
+    const m=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}?fields=sheets.properties`,
+      {headers:{Authorization:'Bearer '+accessToken}}).then(r=>r.json());
+    const exists=(m.sheets||[]).some(s=>s.properties.title===SN);
+    if(!exists){
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}:batchUpdate`,
+        {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+         body:JSON.stringify({requests:[{addSheet:{properties:{title:SN}}}]})});
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${encodeURIComponent(SN)}!A1?valueInputOption=RAW`,
+        {method:'PUT',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+         body:JSON.stringify({values:[HD]})});
+    }
+    return true;
+  }catch(e){console.error('ensurePhotoSheet failed',e); return false;}
+}
+async function appendPhotoRecord(data){
+  if(!config.spreadsheetId)return;
+  await ensurePhotoSheet();
+  const SN='写真台帳';
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${encodeURIComponent(SN)}!A:H:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+     body:JSON.stringify({values:[[data.timestamp,data.kouji,data.kiki,data.comment,data.filename,data.fileId,data.webViewLink,data.user]]})});
+}
+function showProgress(m){const p=document.getElementById('progress'); p.textContent=m; p.style.display='block';}
+function hideProgress(){document.getElementById('progress').style.display='none';}
+async function doSubmit(){
+  if(!accessToken){toast('ログインしてください','error');return;}
+  const kouji=document.getElementById('kouji').value.trim();
+  const kiki=document.getElementById('kiki').value.trim();
+  const comment=document.getElementById('comment').value.trim();
+  if(!kouji||!kiki||!base64Image){toast('工事名・機器名・写真は必須です','error');return;}
+  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.textContent='送信中...';
+  try{
+    showProgress('📁 フォルダを確認中...');
+    const rootId=await findOrCreateFolder(config.rootFolder,null);
+    const koujiId=await findOrCreateFolder(kouji,rootId);
+    const kikiId=await findOrCreateFolder(kiki,koujiId);
+    showProgress('☁️ 写真をアップロード中...');
+    const now=new Date();
+    const p=n=>String(n).padStart(2,'0');
+    const ts=`${now.getFullYear()}${p(now.getMonth()+1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+    const ext=(imageFile.name.split('.').pop()||'jpg').toLowerCase();
+    const filename=`IMG_${ts}.${ext}`;
+    const up=await uploadPhoto(kikiId,filename,imageFile);
+    if(config.spreadsheetId){
+      showProgress('📋 写真台帳に記録中...');
+      await appendPhotoRecord({timestamp:now.toLocaleString('ja-JP'),kouji:kouji,kiki:kiki,comment:comment,
+        filename:up.name,fileId:up.id,webViewLink:up.webViewLink||'',user:localStorage.getItem(USER_KEY)||''});
+    }
+    hideProgress(); toast('✅ 保存完了！','success');
+    base64Image=''; imageFile=null;
+    document.getElementById('fileInput').value='';
+    document.getElementById('preview').style.display='none';
+    document.getElementById('comment').value='';
+    btn.textContent='☁️ Google Drive に保存'; updateUI();
+  }catch(e){
+    console.error(e); hideProgress(); toast('エラー: '+e.message,'error');
+    btn.textContent='☁️ Google Drive に保存'; btn.disabled=false;
+  }
+}
+</script>
 </body>
 </html>
