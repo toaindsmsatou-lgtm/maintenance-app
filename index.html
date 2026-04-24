@@ -956,6 +956,7 @@
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 </head>
 <body>
@@ -2977,9 +2978,24 @@
           <label>偏心測定 シート名</label>
           <input type="text" id="gsCfgEcc" value="整備_偏心測定">
         </div>
-        <div class="gs-row" style="margin-top:14px;justify-content:flex-end">
+        <div class="gs-row" style="margin-top:14px;justify-content:flex-end;flex-wrap:wrap;gap:8px">
+          <button class="gs-btn" style="background:#8b5cf6;color:#fff" onclick="gsOpenQRShare()">📱 QRで他の端末に送る</button>
           <button class="gs-btn gs-btn-secondary" onclick="gsCloseModal('gsSettingsModal')">キャンセル</button>
           <button class="gs-btn gs-btn-success" onclick="gsSaveSettings()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- === QR 共有 モーダル === -->
+    <div class="gs-modal" id="gsQRModal" role="dialog" aria-modal="true">
+      <div class="gs-modal-card" style="max-width:360px;text-align:center">
+        <button class="gs-modal-close" onclick="gsCloseModal('gsQRModal')" aria-label="閉じる">×</button>
+        <h3>📱 設定をQRで共有</h3>
+        <p style="color:#555;font-size:13px">他の端末（スマホ/タブレット）で下のQRを読み取り、表示されるURLを開くと設定が引き継がれます。</p>
+        <div id="gsQrcode" style="display:flex;justify-content:center;margin:16px 0"></div>
+        <div style="font-size:11px;color:#888;word-break:break-all;background:#f5f5f5;padding:8px;border-radius:4px" id="gsQrUrl"></div>
+        <div style="margin-top:12px">
+          <button class="gs-btn gs-btn-secondary" onclick="gsCloseModal('gsQRModal')">閉じる</button>
         </div>
       </div>
     </div>
@@ -3080,18 +3096,97 @@
       document.getElementById('gsCfgEcc').value   = gsConfig.eccSheet;
       gsOpenModal('gsSettingsModal');
     }
-    function gsSaveSettings(){
-      gsConfig.clientId    = document.getElementById('gsCfgClientId').value.trim();
-      gsConfig.sheetId     = document.getElementById('gsCfgSheetId').value.trim();
+    // === 設定UX改善: URL自動抽出 & QR共有 ===
+    function gsExtractSpreadsheetId(input){
+      if(!input) return '';
+      const t = String(input).trim();
+      const m = t.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      return t;
+    }
+    function gsEncodeConfig(){
+      const payload = {
+        c: gsConfig.clientId,
+        s: gsConfig.sheetId,
+        m: gsConfig.masterSheet,
+        k: gsConfig.checkSheet,
+        me:gsConfig.measSheet,
+        p: gsConfig.partsSheet,
+        f: gsConfig.faceSheet,
+        e: gsConfig.eccSheet
+      };
+      return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    }
+    function gsDecodeConfigFromHash(hash){
+      try{
+        const m = hash.match(/setup=([^&]+)/);
+        if (!m) return null;
+        const json = decodeURIComponent(escape(atob(m[1])));
+        return JSON.parse(json);
+      }catch(e){ return null; }
+    }
+    function gsOpenQRShare(){
+      // 入力中の値を反映してからエンコード
+      const cid = document.getElementById('gsCfgClientId').value.trim();
+      const sid = gsExtractSpreadsheetId(document.getElementById('gsCfgSheetId').value);
+      if (!cid){ gsToast('先に Client ID を入力してください','error'); return; }
+      gsConfig.clientId    = cid;
+      gsConfig.sheetId     = sid;
       gsConfig.masterSheet = document.getElementById('gsCfgMaster').value.trim() || '整備記録マスタ';
       gsConfig.checkSheet  = document.getElementById('gsCfgCheck').value.trim()  || '整備_点検項目';
       gsConfig.measSheet   = document.getElementById('gsCfgMeas').value.trim()   || '整備_測定値';
       gsConfig.partsSheet  = document.getElementById('gsCfgParts').value.trim()  || '整備_交換部品';
       gsConfig.faceSheet   = document.getElementById('gsCfgFace').value.trim()   || '整備_面間測定';
       gsConfig.eccSheet    = document.getElementById('gsCfgEcc').value.trim()    || '整備_偏心測定';
+      const encoded = gsEncodeConfig();
+      const base = window.location.origin + window.location.pathname;
+      const url = base + '#setup=' + encoded;
+      const qrDiv = document.getElementById('gsQrcode'); qrDiv.innerHTML = '';
+      if (typeof QRCode === 'undefined'){ gsToast('QRライブラリ読込中です。数秒後にもう一度お試しください','error'); return; }
+      new QRCode(qrDiv, { text:url, width:240, height:240, correctLevel: QRCode.CorrectLevel.M });
+      document.getElementById('gsQrUrl').textContent = url;
+      gsCloseModal('gsSettingsModal');
+      gsOpenModal('gsQRModal');
+    }
+    function gsCheckSetupHash(){
+      const hash = window.location.hash || '';
+      if (hash.indexOf('setup=') < 0) return;
+      const r = gsDecodeConfigFromHash(hash);
+      if (!r || !r.c) return;
+      const preview =
+        'Client ID: ' + (r.c ? r.c.substring(0,30) + '…' : 'なし') +
+        '\nSpreadsheet ID: ' + (r.s || 'なし');
+      if (confirm('📥 QRから設定を受信しました。この端末に適用しますか？\n\n' + preview)){
+        gsConfig.clientId    = r.c || gsConfig.clientId;
+        gsConfig.sheetId     = r.s || gsConfig.sheetId;
+        if (r.m)  gsConfig.masterSheet = r.m;
+        if (r.k)  gsConfig.checkSheet  = r.k;
+        if (r.me) gsConfig.measSheet   = r.me;
+        if (r.p)  gsConfig.partsSheet  = r.p;
+        if (r.f)  gsConfig.faceSheet   = r.f;
+        if (r.e)  gsConfig.eccSheet    = r.e;
+        localStorage.setItem(GS_LS, JSON.stringify(gsConfig));
+        gsToast('✅ 設定を取り込みました。ログインしてください','success');
+        gsUpdateUI();
+      }
+      history.replaceState(null, '', window.location.pathname);
+    }
+    window.addEventListener('DOMContentLoaded', gsCheckSetupHash);
+
+    function gsSaveSettings(){
+      gsConfig.clientId    = document.getElementById('gsCfgClientId').value.trim();
+      gsConfig.sheetId     = gsExtractSpreadsheetId(document.getElementById('gsCfgSheetId').value);
+      gsConfig.masterSheet = document.getElementById('gsCfgMaster').value.trim() || '整備記録マスタ';
+      gsConfig.checkSheet  = document.getElementById('gsCfgCheck').value.trim()  || '整備_点検項目';
+      gsConfig.measSheet   = document.getElementById('gsCfgMeas').value.trim()   || '整備_測定値';
+      gsConfig.partsSheet  = document.getElementById('gsCfgParts').value.trim()  || '整備_交換部品';
+      gsConfig.faceSheet   = document.getElementById('gsCfgFace').value.trim()   || '整備_面間測定';
+      gsConfig.eccSheet    = document.getElementById('gsCfgEcc').value.trim()    || '整備_偏心測定';
+      // 抽出結果を画面にも反映
+      document.getElementById('gsCfgSheetId').value = gsConfig.sheetId;
       localStorage.setItem(GS_LS, JSON.stringify(gsConfig));
       gsCloseModal('gsSettingsModal');
-      gsToast('設定を保存しました','success');
+      gsToast('✅ 設定を保存しました','success');
       gsUpdateUI();
     }
     function gsOpenModal(id){ document.getElementById(id).classList.add('open'); }
