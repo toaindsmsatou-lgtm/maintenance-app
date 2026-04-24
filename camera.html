@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>整備記録カメラ</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; text-align: center; background: #f4f7f6; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; background-color: #007bff; color: white; padding: 14px; margin: 10px 0; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        button:disabled { background-color: #cccccc; }
+        #preview { width: 100%; max-width: 400px; margin-top: 10px; border: 2px dashed #bbb; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h2>整備記録カメラ</h2>
+    <input type="text" id="koujiName" placeholder="工事名 (例: A工場定修)">
+    <input type="text" id="kikiName" placeholder="機器名 (例: ポンプP-101)">
+    <textarea id="comment" placeholder="コメントを入力"></textarea>
+    
+    <input type="file" id="fileInput" accept="image/*" capture="environment">
+    <img id="preview" style="display:none;">
+    
+    <button id="submitBtn">Googleドライブへ保存</button>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxY_UrDhAA-lUUotaZvJyUJPXi4Q_7Ujpr-uQm6j0ZJ62cJMosvi-gdUdFlcvI9jAI4eg/exec";
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const submitBtn = document.getElementById('submitBtn');
+        let base64Image = "";
+
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                base64Image = reader.result;
+                preview.src = base64Image;
+                preview.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            const kouji = document.getElementById('koujiName').value;
+            const kiki = document.getElementById('kikiName').value;
+            const comment = document.getElementById('comment').value;
+
+            if (!kouji || !kiki || !base64Image) {
+                alert("工事名、機器名、写真をすべて入力してください");
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "送信中...";
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        koujiName: kouji,
+                        kikiName: kiki,
+                        photo: base64Image,
+                        comment: comment
+                    })
+                });
+                const result = await response.json();
+                alert("保存成功！フォルダに格納されました。");
+                location.reload();
+            } catch (error) {
+                alert("エラーが発生しました: " + error);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "保存に失敗しました";
+            }
+        });
+    </script>
+</body>
+</html>
