@@ -1,0 +1,3616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回転機械整備記録・報告書作成アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        main {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            position: relative;
+        }
+
+        .report-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .report-toggle input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .report-toggle label {
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "●";
+            margin-right: 10px;
+            color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .measurement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .measurement-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .measurement-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .measurement-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .measurement-row {
+            position: relative;
+            cursor: move;
+        }
+
+        .measurement-row.dragging {
+            opacity: 0.5;
+            background: #f0f0f0;
+        }
+
+        .measurement-row.drag-over {
+            border-top: 3px solid #667eea;
+        }
+
+        .drag-handle {
+            cursor: move;
+            padding: 5px;
+            color: #999;
+            text-align: center;
+        }
+
+        .drag-handle::before {
+            content: "⋮⋮";
+            font-size: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
+        }
+
+        .add-btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            margin-top: 10px;
+            background: #28a745;
+            color: white;
+        }
+
+        .add-btn:hover {
+            background: #218838;
+        }
+
+        .remove-btn {
+            padding: 6px 15px;
+            font-size: 12px;
+            background: #dc3545;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+        }
+
+        .remove-measurement-btn {
+            padding: 4px 12px;
+            font-size: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .remove-measurement-btn:hover {
+            background: #c82333;
+        }
+
+        .file-upload-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+
+        .file-upload-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-upload-title::before {
+            content: "📄";
+            margin-right: 10px;
+        }
+
+        .file-preview-container {
+            margin-top: 15px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .file-preview-container.has-file {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-preview-container.drag-over {
+            border-color: #4caf50;
+            background: #e8f5e9;
+            transform: scale(1.02);
+        }
+
+        .file-preview-container img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-preview-container embed {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .file-file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .file-file-info.show {
+            display: block;
+        }
+
+        .drop-zone-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .drop-zone-text.highlight {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        #output {
+            display: none;
+            margin-top: 30px;
+            padding: 0;
+            background: white;
+            border-radius: 0;
+        }
+
+        .print-page {
+            background: white;
+            padding: 40px;
+            padding-bottom: 60px;
+            max-width: 210mm;
+            margin: 0 auto;
+            min-height: 297mm;
+            position: relative;
+            page-break-after: always;
+        }
+
+        .print-page:last-child {
+            page-break-after: auto;
+        }
+
+        .approval-section {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 0;
+        }
+
+        .approval-box {
+            text-align: center;
+            border: 2px solid #333;
+            width: 1.5cm;
+            height: 1.5cm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+        }
+
+        .approval-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+            padding: 2px 0;
+        }
+
+        .approval-stamp-area {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .print-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 4px double #1e3c72;
+        }
+
+        .print-header h2 {
+            color: #1e3c72;
+            font-size: 24px;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .print-header .company-name {
+            color: #1e3c72;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .print-header .subtitle {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .print-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .print-info-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .print-info-item strong {
+            min-width: 100px;
+            color: #333;
+        }
+
+        .output-section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .output-section h3 {
+            color: white;
+            background: #1e3c72;
+            margin: 0;
+            padding: 12px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .section-content {
+            padding: 15px;
+            background: white;
+        }
+
+        .output-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .output-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+
+        .output-table td:first-child {
+            font-weight: bold;
+            color: #555;
+            width: 160px;
+            background: #f8f9fa;
+        }
+
+        .output-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .measurement-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        .measurement-print-table th {
+            background: #1e3c72;
+            color: white;
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #ddd;
+        }
+
+        .measurement-print-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .measurement-print-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .parts-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+
+        .parts-list li {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+            display: grid;
+            grid-template-columns: 30px 1fr;
+        }
+
+        .parts-list li:last-child {
+            border-bottom: none;
+        }
+
+        .parts-number {
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .text-content {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            border-left: 3px solid #667eea;
+        }
+
+        .judgment-box {
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+            border: 2px solid;
+        }
+
+        .judgment-good {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .judgment-watch {
+            background: #fff3cd;
+            color: #856404;
+            border-color: #ffc107;
+        }
+
+        .judgment-repair {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #dc3545;
+        }
+
+        .print-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #1e3c72;
+            font-weight: bold;
+            padding-top: 10px;
+            border-top: 2px solid #1e3c72;
+        }
+
+        .file-print-section {
+            margin-top: 15px;
+            padding: 15px;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            background: #f8f9fa;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-print-section img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-print-section embed {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .custom-checkbox-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .custom-checkbox-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .custom-checkbox-input input {
+            flex: 1;
+        }
+
+        .custom-checkbox-input button {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .parts-row-5col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: end;
+        }
+
+        .coupling-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+
+        .coupling-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .coupling-title::before {
+            content: "⚙️";
+            margin-right: 10px;
+        }
+
+        .centering-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+        }
+
+        .centering-table th {
+            background: #1e3c72;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .centering-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .centering-table input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .centering-row {
+            cursor: move;
+        }
+
+        .centering-row.dragging {
+            opacity: 0.5;
+            background: #f0f0f0;
+        }
+
+        .centering-row.drag-over {
+            border-top: 3px solid #667eea;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 20mm 15mm;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+            }
+            
+            header {
+                display: none;
+            }
+            
+            main > *:not(#output) {
+                display: none !important;
+            }
+            
+            #output {
+                display: block !important;
+            }
+
+            .print-page {
+                padding: 0;
+                padding-bottom: 20mm;
+                max-width: 100%;
+                margin: 0;
+                min-height: 0;
+                page-break-after: always;
+                position: relative;
+            }
+
+            .print-page:last-child {
+                page-break-after: auto;
+            }
+
+            .btn-group {
+                display: none !important;
+            }
+
+            .output-section {
+                break-inside: avoid;
+            }
+
+            .approval-section {
+                break-inside: avoid;
+            }
+
+            .print-footer {
+                display: block !important;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 12px;
+                color: #1e3c72 !important;
+                font-weight: bold;
+                padding-top: 10px;
+                border-top: 2px solid #1e3c72;
+                page-break-inside: avoid;
+                background: white;
+            }
+
+            .file-print-section {
+                page-break-inside: avoid;
+                min-height: 250px !important;
+            }
+
+            .file-print-section img {
+                max-height: 300px !important;
+            }
+
+            .file-print-section embed {
+                height: 300px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .parts-row-5col {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+
+            .report-toggle {
+                position: static;
+                margin-bottom: 15px;
+                justify-content: center;
+            }
+
+            .print-info-row {
+                grid-template-columns: 1fr;
+            }
+
+            .approval-section {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
+    </style>
+    <style>
+      .gs-banner{background:#eaf4ff;border:1px solid #b8d6ff;border-radius:8px;padding:10px 14px;margin:12px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+      .gs-banner .gs-status{font-weight:600;color:#1f4e78}
+      .gs-banner .gs-user{color:#555;font-size:0.9em}
+      .gs-btn{border:none;border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
+      .gs-btn-primary{background:#1f4e78;color:#fff}
+      .gs-btn-primary:hover{background:#16507c}
+      .gs-btn-success{background:#2e7d32;color:#fff}
+      .gs-btn-success:hover{background:#1b5e20}
+      .gs-btn-secondary{background:#6c757d;color:#fff}
+      .gs-btn-secondary:hover{background:#565e64}
+      .gs-btn-warning{background:#f57c00;color:#fff}
+      .gs-btn-warning:hover{background:#ef6c00}
+      .gs-btn-danger{background:#c62828;color:#fff}
+      .gs-btn:disabled{background:#bbb;cursor:not-allowed}
+      .gs-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+      .gs-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:20px}
+      .gs-modal.open{display:flex}
+      .gs-modal-card{background:#fff;border-radius:10px;width:100%;max-width:900px;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.2)}
+      .gs-modal-card h3{margin-top:0;color:#1f4e78}
+      .gs-modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:#666}
+      .gs-table{width:100%;border-collapse:collapse;font-size:14px}
+      .gs-table th,.gs-table td{border:1px solid #e0e0e0;padding:8px;text-align:left;vertical-align:top}
+      .gs-table th{background:#f5f5f5;position:sticky;top:0}
+      .gs-table tbody tr:hover{background:#f8faff;cursor:pointer}
+      .gs-filter-bar{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+      .gs-filter-bar input,.gs-filter-bar select{padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px}
+      .gs-settings-grid{display:grid;grid-template-columns:160px 1fr;gap:10px 14px;align-items:center}
+      .gs-settings-grid input{padding:8px;border:1px solid #ccc;border-radius:6px;width:100%;font-size:14px;box-sizing:border-box}
+      .gs-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f4e78;color:#fff;padding:10px 18px;border-radius:6px;z-index:10000;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%}
+      .gs-toast.show{opacity:0.95}
+      .gs-toast.error{background:#c62828}
+      .gs-toast.success{background:#2e7d32}
+      @media (max-width: 768px){
+        .gs-settings-grid{grid-template-columns:1fr}
+        .gs-banner{flex-direction:column;align-items:stretch}
+      }
+    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 回転機械整備記録・報告書作成システム</h1>
+            <p>ポンプ・ブロワ・ファン・コンプレッサー等の整備記録を効率的に管理</p>
+        </header>
+
+        <main>
+            <div id="alertBox" class="alert"></div>
+
+            <!-- === ページ上部 Google Sheets 連携バー === -->
+            <div class="gs-banner" id="gsBannerTop">
+              <div>
+                <div class="gs-status" id="gsStatusTop">未ログイン</div>
+                <div class="gs-user" id="gsUserTop"></div>
+              </div>
+              <div class="gs-row">
+                <button type="button" class="gs-btn gs-btn-primary" onclick="gsLogin()">🔑 Googleログイン</button>
+                <button type="button" class="gs-btn gs-btn-secondary" onclick="gsOpenSettings()">⚙️ 設定</button>
+                <button type="button" class="gs-btn gs-btn-success" id="gsSaveBtnTop" onclick="gsSaveToSheet()" disabled>☁️ 保存</button>
+                <button type="button" class="gs-btn gs-btn-primary" id="gsListBtnTop" onclick="gsOpenList()" disabled>📋 一覧</button>
+                <button type="button" class="gs-btn gs-btn-warning" onclick="gsNewRecord()">🆕 新規</button>
+              </div>
+            </div>
+
+            <form
+ id="maintenanceForm">
+                <!-- 基本情報 -->
+                <div class="section" data-section="basic">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportBasic" checked>
+                        <label for="reportBasic">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">基本情報</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>整備開始日 <span style="color: red;">*</span></label>
+                            <input type="date" id="maintenanceStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>整備完了日</label>
+                            <input type="date" id="maintenanceEndDate">
+                        </div>
+                        <div class="form-group">
+                            <label>作業者名</label>
+                            <input type="text" id="workerName" placeholder="例: 山田太郎">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>作業責任者</label>
+                            <input type="text" id="supervisor" placeholder="例: 佐藤次郎">
+                        </div>
+                        <div class="form-group">
+                            <label>作業現場</label>
+                            <input type="text" id="workSite" placeholder="例: ○○プラント">
+                        </div>
+                        <div class="form-group">
+                            <label>エリア</label>
+                            <input type="text" id="area" placeholder="例: A棟3階">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>工事名称</label>
+                            <input type="text" id="constructionName" placeholder="例: 設備改修工事">
+                        </div>
+                        <div class="form-group">
+                            <label>客先担当者</label>
+                            <input type="text" id="clientContact" placeholder="例: 鈴木一郎">
+                        </div>
+                        <div class="form-group">
+                            <label>工事番号</label>
+                            <input type="text" id="projectNumber" placeholder="例: 2026-0316">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 機械情報 -->
+                <div class="section" data-section="machine">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportMachine" checked>
+                        <label for="reportMachine">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">機械情報</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>機器種別</label>
+                            <input type="text" id="machineType" list="machineTypeList" placeholder="選択または入力してください">
+                            <datalist id="machineTypeList">
+                                <option value="ポンプ">
+                                <option value="ブロワ">
+                                <option value="ファン">
+                                <option value="コンプレッサー">
+                                <option value="その他">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>機械名称</label>
+                            <input type="text" id="machineName" placeholder="例: 水中ポンプ">
+                        </div>
+                        <div class="form-group">
+                            <label>型式</label>
+                            <input type="text" id="model" placeholder="例: ABC-1234">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>製造番号</label>
+                            <input type="text" id="serialNumber" placeholder="例: SN-2025-001">
+                        </div>
+                        <div class="form-group">
+                            <label>定格出力 (kW)</label>
+                            <input type="number" id="ratedPower" step="0.1" placeholder="例: 15.0">
+                        </div>
+                        <div class="form-group">
+                            <label>設置場所</label>
+                            <input type="text" id="location" placeholder="例: 地下ピット">
+                        </div>
+                    </div>
+
+                    <!-- ファイル・画像貼り付け欄 -->
+                    <div class="file-upload-section">
+                        <div class="file-upload-title">機器図面・画像 (PDF/画像)</div>
+                        <div>
+                            <input type="file" id="machineFileInput" accept=".pdf,image/*" onchange="handleMachineFileUpload(event)" style="margin-bottom: 10px;">
+                            <button type="button" class="remove-btn" onclick="clearMachineFile()" style="margin-left: 10px;">クリア</button>
+                        </div>
+                        <div class="file-preview-container" id="machineFilePreviewContainer" 
+                             ondrop="handleMachineFileDrop(event)" 
+                             ondragover="handleMachineFileDragOver(event)"
+                             ondragleave="handleMachineFileDragLeave(event)"
+                             onclick="document.getElementById('machineFileInput').click()">
+                            <p style="color: #999;">📁 ファイルをドラッグ&ドロップ<br>または<br>クリックして選択</p>
+                            <p class="drop-zone-text">PDF・画像ファイル対応</p>
+                        </div>
+                        <div class="file-file-info" id="machineFileInfo"></div>
+                    </div>
+                </div>
+
+                <!-- 整備内容 -->
+                <div class="section" data-section="maintenance">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportMaintenance" checked>
+                        <label for="reportMaintenance">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">整備内容</div>
+                    <div class="form-group">
+                        <label>整備区分</label>
+                        <select id="maintenanceType">
+                            <option value="">選択してください</option>
+                            <option value="日常点検">日常点検</option>
+                            <option value="定期点検">定期点検</option>
+                            <option value="分解整備">分解整備</option>
+                            <option value="修理">修理</option>
+                            <option value="オーバーホール">オーバーホール</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>点検項目</label>
+                        <div class="checkbox-group" id="checkboxGroup">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check1" value="外観点検">
+                                <label for="check1">外観点検</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check2" value="異音・振動確認">
+                                <label for="check2">異音・振動確認</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check3" value="ベアリング点検">
+                                <label for="check3">ベアリング点検</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check4" value="シール交換">
+                                <label for="check4">シール交換</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check5" value="グリス補充">
+                                <label for="check5">グリス補充</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check6" value="オイル交換">
+                                <label for="check6">オイル交換</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check7" value="インペラ清掃">
+                                <label for="check7">インペラ清掃</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check8" value="電気系統点検">
+                                <label for="check8">電気系統点検</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check9" value="アライメント調整">
+                                <label for="check9">アライメント調整</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="check10" value="試運転">
+                                <label for="check10">試運転</label>
+                            </div>
+                        </div>
+                        <div class="custom-checkbox-container">
+                            <label style="margin: 0;">カスタム項目を追加</label>
+                            <div class="custom-checkbox-input">
+                                <input type="text" id="customCheckItem" placeholder="新しい点検項目を入力">
+                                <button type="button" class="add-btn" onclick="addCustomCheckItem()">追加</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- カップリングセンタリング記録 -->
+                <div class="section" data-section="coupling">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportCoupling">
+                        <label for="reportCoupling">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">カップリング センタリング記録</div>
+                    
+                    <!-- ファイル・画像貼り付け欄 -->
+                    <div class="file-upload-section">
+                        <div class="file-upload-title">カップリング図面・画像 (PDF/画像)</div>
+                        <div>
+                            <input type="file" id="couplingFileInput" accept=".pdf,image/*" onchange="handleCouplingFileUpload(event)" style="margin-bottom: 10px;">
+                            <button type="button" class="remove-btn" onclick="clearCouplingFile()" style="margin-left: 10px;">クリア</button>
+                        </div>
+                        <div class="file-preview-container" id="couplingFilePreviewContainer"
+                             ondrop="handleCouplingFileDrop(event)"
+                             ondragover="handleCouplingFileDragOver(event)"
+                             ondragleave="handleCouplingFileDragLeave(event)"
+                             onclick="document.getElementById('couplingFileInput').click()">
+                            <p style="color: #999;">📁 ファイルをドラッグ&ドロップ<br>または<br>クリックして選択</p>
+                            <p class="drop-zone-text">PDF・画像ファイル対応</p>
+                        </div>
+                        <div class="file-file-info" id="couplingFileInfo"></div>
+                    </div>
+
+                    <div class="coupling-section">
+                        <div class="coupling-title">基準値・使用測定器具</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>許容偏心 (mm)</label>
+                                <input type="number" id="allowableEccentricity" step="0.01" placeholder="例: 0.05">
+                            </div>
+                            <div class="form-group">
+                                <label>許容偏角 (mm)</label>
+                                <input type="number" id="allowableAngle" step="0.01" placeholder="例: 0.05">
+                            </div>
+                            <div class="form-group">
+                                <label>面間 (mm)</label>
+                                <input type="number" id="faceGap" step="0.1" placeholder="例: 3.0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>使用測定器具</label>
+                                <input type="text" id="measuringInstrument" placeholder="例: ダイヤルゲージ 0.01mm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="coupling-section" style="margin-top: 20px;">
+                        <div class="coupling-title">面間測定(面のずれ)</div>
+                        <table class="centering-table" id="faceTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">⋮⋮</th>
+                                    <th>測定位置</th>
+                                    <th>調整前 (mm)</th>
+                                    <th>調整後 (mm)</th>
+                                    <th>判定</th>
+                                    <th style="width: 60px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faceTableBody">
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="0° (上部)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="90° (右側)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="180° (下部)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="270° (左側)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="add-btn" onclick="addFaceMeasurement()">+ 面間測定位置を追加</button>
+                    </div>
+
+                    <div class="coupling-section" style="margin-top: 20px;">
+                        <div class="coupling-title">偏心測定(軸心のずれ)</div>
+                        <table class="centering-table" id="eccentricityTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">⋮⋮</th>
+                                    <th>測定位置</th>
+                                    <th>調整前 (mm)</th>
+                                    <th>調整後 (mm)</th>
+                                    <th>判定</th>
+                                    <th style="width: 60px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eccentricityTableBody">
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="0° (上部)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="90° (右側)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="180° (下部)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                                </tr>
+                                <tr class="centering-row" draggable="true">
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" value="270° (左側)" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="number" step="0.01"></td>
+                                    <td><input type="text" placeholder="合格/不合格"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="add-btn" onclick="addEccentricityMeasurement()">+ 偏心測定位置を追加</button>
+                    </div>
+
+                    <div class="coupling-section" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <label>センタリング作業備考</label>
+                            <textarea id="centeringNotes" placeholder="センタリング作業の特記事項があれば記載してください"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 測定値 -->
+                <div class="section" data-section="measurements">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportMeasurements" checked>
+                        <label for="reportMeasurements">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">測定値・データ</div>
+                    <table class="measurement-table" id="measurementTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">⋮⋮</th>
+                                <th>測定項目</th>
+                                <th>整備前</th>
+                                <th>整備後</th>
+                                <th>基準値</th>
+                                <th>備考</th>
+                                <th style="width: 60px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="measurementTableBody">
+                            <tr class="measurement-row" draggable="true" data-id="vib">
+                                <td class="drag-handle"></td>
+                                <td><input type="text" class="measurementItem" value="振動値 (mm/s)" style="border: 1px solid #e0e0e0;"></td>
+                                <td><input type="text" class="measurementBefore" placeholder="例: 5.2"></td>
+                                <td><input type="text" class="measurementAfter" placeholder="例: 2.1"></td>
+                                <td><input type="text" class="measurementStandard" placeholder="例: <4.5"></td>
+                                <td><input type="text" class="measurementNote"></td>
+                                <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                            </tr>
+                            <tr class="measurement-row" draggable="true" data-id="temp">
+                                <td class="drag-handle"></td>
+                                <td><input type="text" class="measurementItem" value="温度 (℃)" style="border: 1px solid #e0e0e0;"></td>
+                                <td><input type="text" class="measurementBefore" placeholder="例: 65"></td>
+                                <td><input type="text" class="measurementAfter" placeholder="例: 55"></td>
+                                <td><input type="text" class="measurementStandard" placeholder="例: <70"></td>
+                                <td><input type="text" class="measurementNote"></td>
+                                <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                            </tr>
+                            <tr class="measurement-row" draggable="true" data-id="current">
+                                <td class="drag-handle"></td>
+                                <td><input type="text" class="measurementItem" value="電流値 (A)" style="border: 1px solid #e0e0e0;"></td>
+                                <td><input type="text" class="measurementBefore" placeholder="例: 32.5"></td>
+                                <td><input type="text" class="measurementAfter" placeholder="例: 28.0"></td>
+                                <td><input type="text" class="measurementStandard" placeholder="例: 25-35"></td>
+                                <td><input type="text" class="measurementNote"></td>
+                                <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="button" class="add-btn" onclick="addMeasurement()">+ 測定項目を追加</button>
+                </div>
+
+                <!-- 交換部品 -->
+                <div class="section" data-section="parts">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportParts" checked>
+                        <label for="reportParts">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">交換部品</div>
+                    <div id="partsContainer">
+                        <div class="parts-row-5col">
+                            <div class="form-group">
+                                <label>部品名</label>
+                                <input type="text" class="partName" placeholder="例: メカニカルシール">
+                            </div>
+                            <div class="form-group">
+                                <label>型番</label>
+                                <input type="text" class="partModel" placeholder="例: MS-001">
+                            </div>
+                            <div class="form-group">
+                                <label>図番</label>
+                                <input type="text" class="partDrawing" placeholder="例: DWG-12345">
+                            </div>
+                            <div class="form-group">
+                                <label>材質</label>
+                                <input type="text" class="partMaterial" placeholder="例: SUS304">
+                            </div>
+                            <div class="form-group">
+                                <label>数量</label>
+                                <input type="number" class="partQuantity" placeholder="例: 1">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-btn" onclick="addPart()">+ 部品を追加</button>
+                </div>
+
+                <!-- 整備結果・所見 -->
+                <div class="section" data-section="results">
+                    <div class="report-toggle">
+                        <input type="checkbox" id="reportResults" checked>
+                        <label for="reportResults">📋 報告書に記載</label>
+                    </div>
+                    <div class="section-title">整備結果・所見</div>
+                    <div class="form-group">
+                        <label>整備内容詳細</label>
+                        <textarea id="maintenanceDetails" placeholder="実施した整備内容を詳しく記載してください"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>不具合内容</label>
+                        <textarea id="issues" placeholder="発見された不具合や異常があれば記載してください"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>対処内容</label>
+                        <textarea id="actions" placeholder="不具合に対する対処内容を記載してください"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>今後の対応事項</label>
+                        <textarea id="followUp" placeholder="次回点検時の注意事項や今後必要な対応を記載してください"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>総合判定</label>
+                            <select id="overallJudgment">
+                                <option value="">選択してください</option>
+                                <option value="良好">良好</option>
+                                <option value="要観察">要観察</option>
+                                <option value="要修理">要修理</option>
+                                <option value="使用不可">使用不可</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>次回点検予定日</label>
+                            <input type="date" id="nextMaintenanceDate">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ボタン -->
+                <!-- === ページ下部 Sheets 連携バナー === -->
+                <div class="gs-banner" id="gsBanner">
+                  <div>
+                    <div class="gs-status" id="gsStatus">未ログイン</div>
+                    <div class="gs-user" id="gsUser"></div>
+                  </div>
+                  <div class="gs-row">
+                    <button type="button" class="gs-btn gs-btn-primary" id="gsLoginBtn" onclick="gsLogin()">🔑 Googleログイン</button>
+                    <button type="button" class="gs-btn gs-btn-secondary" onclick="gsOpenSettings()">⚙️ 設定</button>
+                    <button type="button" class="gs-btn gs-btn-secondary" id="gsLogoutBtn" onclick="gsLogout()" style="display:none">ログアウト</button>
+                  </div>
+                </div>
+                <div class="gs-row">
+                  <button type="button" class="gs-btn gs-btn-success" id="gsSaveBtn" onclick="gsSaveToSheet()" disabled>☁️ スプレッドシートに保存</button>
+                  <button type="button" class="gs-btn gs-btn-primary" id="gsListBtn" onclick="gsOpenList()" disabled>📋 既存記録を開く</button>
+                  <button type="button" class="gs-btn gs-btn-warning" onclick="gsNewRecord()">🆕 新規作成（クリア）</button>
+                  <span id="gsCurrentRecord" style="align-self:center;color:#555;font-size:0.9em"></span>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn-primary" onclick="generateReport()">📄 報告書を生成</button>
+                    <button type="button" class="btn-secondary" onclick="printReport()">🖨️ 印刷</button>
+                    <button type="button" class="btn-success" onclick="saveData()">💾 JSON保存（バックアップ）</button>
+                    <button type="button" class="btn-success" onclick="loadData()">📂 JSON読込（バックアップ）</button>
+                    <button type="button" class="btn-warning" onclick="clearForm()">🔄 フォームクリア</button>
+                </div>
+            </form>
+
+            <!-- 出力エリア -->
+            <div id="output"></div>
+        </main>
+    </div>
+
+    <script>
+        let customCheckCounter = 11;
+        let measurementCounter = 1;
+        let uploadedMachineFileData = null;
+        let uploadedMachineFileName = '';
+        let uploadedMachineFileType = '';
+        let uploadedCouplingFileData = null;
+        let uploadedCouplingFileName = '';
+        let uploadedCouplingFileType = '';
+
+        document.getElementById('maintenanceStartDate').valueAsDate = new Date();
+
+        // Machine File Upload Functions
+        function handleMachineFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file, 'machine');
+            }
+        }
+
+        function handleMachineFileDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('machineFilePreviewContainer');
+            container.classList.remove('drag-over');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0], 'machine');
+            }
+        }
+
+        function handleMachineFileDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('machineFilePreviewContainer');
+            container.classList.add('drag-over');
+            const text = container.querySelector('.drop-zone-text');
+            if (text) text.classList.add('highlight');
+        }
+
+        function handleMachineFileDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('machineFilePreviewContainer');
+            container.classList.remove('drag-over');
+            const text = container.querySelector('.drop-zone-text');
+            if (text) text.classList.remove('highlight');
+        }
+
+        function clearMachineFile() {
+            uploadedMachineFileData = null;
+            uploadedMachineFileName = '';
+            uploadedMachineFileType = '';
+            document.getElementById('machineFileInput').value = '';
+            
+            const container = document.getElementById('machineFilePreviewContainer');
+            container.classList.remove('has-file');
+            container.innerHTML = '<p style="color: #999;">📁 ファイルをドラッグ&ドロップ<br>または<br>クリックして選択</p><p class="drop-zone-text">PDF・画像ファイル対応</p>';
+            
+            const fileInfo = document.getElementById('machineFileInfo');
+            fileInfo.classList.remove('show');
+            fileInfo.innerHTML = '';
+            
+            showAlert('ファイルをクリアしました', 'info');
+        }
+
+        // Coupling File Upload Functions
+        function handleCouplingFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file, 'coupling');
+            }
+        }
+
+        function handleCouplingFileDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('couplingFilePreviewContainer');
+            container.classList.remove('drag-over');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0], 'coupling');
+            }
+        }
+
+        function handleCouplingFileDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('couplingFilePreviewContainer');
+            container.classList.add('drag-over');
+            const text = container.querySelector('.drop-zone-text');
+            if (text) text.classList.add('highlight');
+        }
+
+        function handleCouplingFileDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const container = document.getElementById('couplingFilePreviewContainer');
+            container.classList.remove('drag-over');
+            const text = container.querySelector('.drop-zone-text');
+            if (text) text.classList.remove('highlight');
+        }
+
+        function clearCouplingFile() {
+            uploadedCouplingFileData = null;
+            uploadedCouplingFileName = '';
+            uploadedCouplingFileType = '';
+            document.getElementById('couplingFileInput').value = '';
+            
+            const container = document.getElementById('couplingFilePreviewContainer');
+            container.classList.remove('has-file');
+            container.innerHTML = '<p style="color: #999;">📁 ファイルをドラッグ&ドロップ<br>または<br>クリックして選択</p><p class="drop-zone-text">PDF・画像ファイル対応</p>';
+            
+            const fileInfo = document.getElementById('couplingFileInfo');
+            fileInfo.classList.remove('show');
+            fileInfo.innerHTML = '';
+            
+            showAlert('ファイルをクリアしました', 'info');
+        }
+
+        // Common File Processing
+        function processFile(file, type) {
+            const isPDF = file.type === 'application/pdf';
+            const isImage = file.type.startsWith('image/');
+            
+            if (!isPDF && !isImage) {
+                showAlert('PDFまたは画像ファイルを選択してください', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = e.target.result;
+                const containerId = type === 'machine' ? 'machineFilePreviewContainer' : 'couplingFilePreviewContainer';
+                const fileInfoId = type === 'machine' ? 'machineFileInfo' : 'couplingFileInfo';
+                
+                if (type === 'machine') {
+                    uploadedMachineFileData = data;
+                    uploadedMachineFileName = file.name;
+                    uploadedMachineFileType = file.type;
+                } else {
+                    uploadedCouplingFileData = data;
+                    uploadedCouplingFileName = file.name;
+                    uploadedCouplingFileType = file.type;
+                }
+                
+                const container = document.getElementById(containerId);
+                container.classList.add('has-file');
+                
+                if (isPDF) {
+                    container.innerHTML = `<embed src="${data}" type="application/pdf" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 5px;">`;
+                } else {
+                    container.innerHTML = `<img src="${data}" alt="プレビュー" style="max-width: 100%; max-height: 400px; border-radius: 5px;">`;
+                }
+                
+                const fileInfo = document.getElementById(fileInfoId);
+                fileInfo.classList.add('show');
+                const fileIcon = isPDF ? '📄' : '🖼️';
+                fileInfo.innerHTML = `<strong>${fileIcon} ${file.name}</strong> (${(file.size / 1024).toFixed(2)} KB)`;
+                
+                showAlert('ファイルを読み込みました', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ドラッグ&ドロップ機能の初期化
+        function initDragAndDrop() {
+            initTableDragDrop('measurementTableBody');
+            initTableDragDrop('faceTableBody');
+            initTableDragDrop('eccentricityTableBody');
+        }
+
+        function initTableDragDrop(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            let draggedRow = null;
+
+            tbody.addEventListener('dragstart', function(e) {
+                if (e.target.classList.contains('centering-row') || e.target.classList.contains('measurement-row')) {
+                    draggedRow = e.target;
+                    e.target.classList.add('dragging');
+                }
+            });
+
+            tbody.addEventListener('dragend', function(e) {
+                if (e.target.classList.contains('centering-row') || e.target.classList.contains('measurement-row')) {
+                    e.target.classList.remove('dragging');
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach(row => row.classList.remove('drag-over'));
+                }
+            });
+
+            tbody.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(tbody, e.clientY);
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach(row => row.classList.remove('drag-over'));
+                
+                if (afterElement == null) {
+                    if (draggedRow) {
+                        tbody.appendChild(draggedRow);
+                    }
+                } else {
+                    afterElement.classList.add('drag-over');
+                    if (draggedRow) {
+                        tbody.insertBefore(draggedRow, afterElement);
+                    }
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('tr:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            initDragAndDrop();
+        });
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
+
+        function addCustomCheckItem() {
+            const input = document.getElementById('customCheckItem');
+            const value = input.value.trim();
+            
+            if (!value) {
+                showAlert('点検項目を入力してください', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('checkboxGroup');
+            const newItem = document.createElement('div');
+            newItem.className = 'checkbox-item';
+            newItem.innerHTML = `
+                <input type="checkbox" id="check${customCheckCounter}" value="${value}" checked>
+                <label for="check${customCheckCounter}">${value}</label>
+            `;
+            container.appendChild(newItem);
+            
+            customCheckCounter++;
+            input.value = '';
+            showAlert('点検項目を追加しました', 'success');
+        }
+
+        function addMeasurement() {
+            const tbody = document.getElementById('measurementTableBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'measurement-row';
+            newRow.setAttribute('draggable', 'true');
+            newRow.setAttribute('data-id', 'custom' + measurementCounter);
+            newRow.innerHTML = `
+                <td class="drag-handle"></td>
+                <td><input type="text" class="measurementItem" placeholder="測定項目名" style="border: 1px solid #e0e0e0;"></td>
+                <td><input type="text" class="measurementBefore" placeholder="整備前"></td>
+                <td><input type="text" class="measurementAfter" placeholder="整備後"></td>
+                <td><input type="text" class="measurementStandard" placeholder="基準値"></td>
+                <td><input type="text" class="measurementNote" placeholder="備考"></td>
+                <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+            `;
+            tbody.appendChild(newRow);
+            measurementCounter++;
+            initDragAndDrop();
+            showAlert('測定項目を追加しました', 'success');
+        }
+
+        function removeMeasurement(button) {
+            const row = button.closest('tr');
+            const tbody = document.getElementById('measurementTableBody');
+            
+            if (tbody.querySelectorAll('tr').length > 1) {
+                row.remove();
+                showAlert('測定項目を削除しました', 'info');
+            } else {
+                showAlert('最低1つの測定項目は必要です', 'error');
+            }
+        }
+
+        function addFaceMeasurement() {
+            const tbody = document.getElementById('faceTableBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'centering-row';
+            newRow.setAttribute('draggable', 'true');
+            newRow.innerHTML = `
+                <td class="drag-handle"></td>
+                <td><input type="text" placeholder="測定位置" style="border: 1px solid #e0e0e0;"></td>
+                <td><input type="number" step="0.01"></td>
+                <td><input type="number" step="0.01"></td>
+                <td><input type="text" placeholder="合格/不合格"></td>
+                <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+            `;
+            tbody.appendChild(newRow);
+            initDragAndDrop();
+            showAlert('面間測定位置を追加しました', 'success');
+        }
+
+        function addEccentricityMeasurement() {
+            const tbody = document.getElementById('eccentricityTableBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'centering-row';
+            newRow.setAttribute('draggable', 'true');
+            newRow.innerHTML = `
+                <td class="drag-handle"></td>
+                <td><input type="text" placeholder="測定位置" style="border: 1px solid #e0e0e0;"></td>
+                <td><input type="number" step="0.01"></td>
+                <td><input type="number" step="0.01"></td>
+                <td><input type="text" placeholder="合格/不合格"></td>
+                <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+            `;
+            tbody.appendChild(newRow);
+            initDragAndDrop();
+            showAlert('偏心測定位置を追加しました', 'success');
+        }
+
+        function removeCenteringRow(button, type) {
+            const row = button.closest('tr');
+            const tbody = type === 'face' ? document.getElementById('faceTableBody') : document.getElementById('eccentricityTableBody');
+            
+            if (tbody.querySelectorAll('tr').length > 1) {
+                row.remove();
+                showAlert('測定位置を削除しました', 'info');
+            } else {
+                showAlert('最低1つの測定位置は必要です', 'error');
+            }
+        }
+
+        function addPart() {
+            const container = document.getElementById('partsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'parts-row-5col';
+            newRow.innerHTML = `
+                <div class="form-group">
+                    <label>部品名</label>
+                    <input type="text" class="partName" placeholder="例: メカニカルシール">
+                </div>
+                <div class="form-group">
+                    <label>型番</label>
+                    <input type="text" class="partModel" placeholder="例: MS-001">
+                </div>
+                <div class="form-group">
+                    <label>図番</label>
+                    <input type="text" class="partDrawing" placeholder="例: DWG-12345">
+                </div>
+                <div class="form-group">
+                    <label>材質</label>
+                    <input type="text" class="partMaterial" placeholder="例: SUS304">
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column;">
+                    <label>数量</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" class="partQuantity" placeholder="例: 1" style="flex: 1;">
+                        <button type="button" class="remove-btn" onclick="removePart(this)" style="margin: 0;">削除</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function removePart(button) {
+            const row = button.closest('.parts-row-5col');
+            const container = document.getElementById('partsContainer');
+            if (container.querySelectorAll('.parts-row-5col').length > 1) {
+                row.remove();
+            } else {
+                showAlert('最低1つの部品行は必要です', 'error');
+            }
+        }
+
+        function generateReport() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'});
+            
+            let outputHTML = '';
+            
+            outputHTML += `<div class="print-page">`;
+            
+            outputHTML += `
+                <div class="approval-section">
+                    <div class="approval-box">
+                        <div class="approval-label">承認</div>
+                        <div class="approval-stamp-area"></div>
+                    </div>
+                    <div class="approval-box">
+                        <div class="approval-label">確認</div>
+                        <div class="approval-stamp-area"></div>
+                    </div>
+                    <div class="approval-box">
+                        <div class="approval-label">作成</div>
+                        <div class="approval-stamp-area"></div>
+                    </div>
+                </div>
+            `;
+            
+            outputHTML += `
+                <div class="print-header">
+                    <h2>回転機械整備報告書</h2>
+                    <div class="company-name">東亜工業株式会社</div>
+                    <div class="subtitle">Rotating Machinery Maintenance Report</div>
+                    <div class="print-info-row">
+                        <div class="print-info-item">
+                            <strong>報告書番号:</strong>
+                            <span>${document.getElementById('projectNumber').value || '―'}</span>
+                        </div>
+                        <div class="print-info-item">
+                            <strong>作成日:</strong>
+                            <span>${dateStr}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (document.getElementById('reportBasic').checked) {
+                const startDate = document.getElementById('maintenanceStartDate').value;
+                const endDate = document.getElementById('maintenanceEndDate').value;
+                const formattedStartDate = startDate ? new Date(startDate).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'}) : '―';
+                const formattedEndDate = endDate ? new Date(endDate).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'}) : '';
+                
+                const dateRange = formattedEndDate ? `${formattedStartDate} ～ ${formattedEndDate}` : formattedStartDate;
+                
+                outputHTML += `
+                    <div class="output-section">
+                        <h3>■ 基本情報</h3>
+                        <div class="section-content">
+                            <table class="output-table">
+                                <tr>
+                                    <td>整備期間</td>
+                                    <td>${dateRange}</td>
+                                </tr>
+                                <tr>
+                                    <td>作業者名</td>
+                                    <td>${document.getElementById('workerName').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>作業責任者</td>
+                                    <td>${document.getElementById('supervisor').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>作業現場</td>
+                                    <td>${document.getElementById('workSite').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>エリア</td>
+                                    <td>${document.getElementById('area').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>工事名称</td>
+                                    <td>${document.getElementById('constructionName').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>客先担当者</td>
+                                    <td>${document.getElementById('clientContact').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>工事番号</td>
+                                    <td>${document.getElementById('projectNumber').value || '―'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (document.getElementById('reportMachine').checked) {
+                const power = document.getElementById('ratedPower').value;
+                outputHTML += `
+                    <div class="output-section">
+                        <h3>■ 機械情報</h3>
+                        <div class="section-content">
+                            <table class="output-table">
+                                <tr>
+                                    <td>機器種別</td>
+                                    <td>${document.getElementById('machineType').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>機械名称</td>
+                                    <td>${document.getElementById('machineName').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>型式</td>
+                                    <td>${document.getElementById('model').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>製造番号</td>
+                                    <td>${document.getElementById('serialNumber').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>定格出力</td>
+                                    <td>${power ? power + ' kW' : '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>設置場所</td>
+                                    <td>${document.getElementById('location').value || '―'}</td>
+                                </tr>
+                            </table>
+                `;
+
+                // ファイルの表示
+                if (uploadedMachineFileData) {
+                    outputHTML += `<div class="file-print-section">`;
+                    outputHTML += `<strong style="color: #1e3c72; display: block; margin-bottom: 10px;">`;
+                    
+                    if (uploadedMachineFileType === 'application/pdf') {
+                        outputHTML += `📄 機器図面: ${uploadedMachineFileName}</strong>`;
+                        outputHTML += `<embed src="${uploadedMachineFileData}" type="application/pdf" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 5px;">`;
+                    } else {
+                        outputHTML += `🖼️ 機器画像: ${uploadedMachineFileName}</strong>`;
+                        outputHTML += `<img src="${uploadedMachineFileData}" alt="機器画像" style="max-width: 100%; max-height: 400px; border-radius: 5px;">`;
+                    }
+                    
+                    outputHTML += `</div>`;
+                }
+
+                outputHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (document.getElementById('reportMaintenance').checked) {
+                const checkItems = [];
+                const checkboxes = document.querySelectorAll('#checkboxGroup input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        checkItems.push(checkbox.value);
+                    }
+                });
+                
+                outputHTML += `
+                    <div class="output-section">
+                        <h3>■ 整備内容</h3>
+                        <div class="section-content">
+                            <table class="output-table">
+                                <tr>
+                                    <td>整備区分</td>
+                                    <td>${document.getElementById('maintenanceType').value || '―'}</td>
+                                </tr>
+                                <tr>
+                                    <td>実施点検項目</td>
+                                    <td>${checkItems.length > 0 ? checkItems.join('、') : '―'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (document.getElementById('reportCoupling').checked) {
+                outputHTML += `
+                    <div class="output-section">
+                        <h3>■ カップリング センタリング記録</h3>
+                        <div class="section-content">
+                `;
+
+                // カップリングファイルの表示
+                if (uploadedCouplingFileData) {
+                    outputHTML += `<div class="file-print-section">`;
+                    outputHTML += `<strong style="color: #1e3c72; display: block; margin-bottom: 10px;">`;
+                    
+                    if (uploadedCouplingFileType === 'application/pdf') {
+                        outputHTML += `📄 カップリング図面: ${uploadedCouplingFileName}</strong>`;
+                        outputHTML += `<embed src="${uploadedCouplingFileData}" type="application/pdf" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 5px;">`;
+                    } else {
+                        outputHTML += `🖼️ カップリング画像: ${uploadedCouplingFileName}</strong>`;
+                        outputHTML += `<img src="${uploadedCouplingFileData}" alt="カップリング画像" style="max-width: 100%; max-height: 400px; border-radius: 5px;">`;
+                    }
+                    
+                    outputHTML += `</div>`;
+                }
+
+                outputHTML += `
+                            <div style="margin-bottom: 15px; margin-top: 20px;">
+                                <strong style="color: #1e3c72;">基準値・使用測定器具</strong>
+                                <table class="output-table" style="margin-top: 10px;">
+                                    <tr>
+                                        <td>許容偏心</td>
+                                        <td>${document.getElementById('allowableEccentricity').value ? document.getElementById('allowableEccentricity').value + ' mm' : '―'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>許容偏角</td>
+                                        <td>${document.getElementById('allowableAngle').value ? document.getElementById('allowableAngle').value + ' mm' : '―'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>面間</td>
+                                        <td>${document.getElementById('faceGap').value ? document.getElementById('faceGap').value + ' mm' : '―'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>使用測定器具</td>
+                                        <td>${document.getElementById('measuringInstrument').value || '―'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <strong style="color: #1e3c72;">面間測定(面のずれ)</strong>
+                                <table class="measurement-print-table" style="margin-top: 10px;">
+                                    <thead>
+                                        <tr>
+                                            <th>測定位置</th>
+                                            <th>調整前 (mm)</th>
+                                            <th>調整後 (mm)</th>
+                                            <th>判定</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+
+                const faceRows = document.querySelectorAll('#faceTableBody tr');
+                faceRows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    if (inputs.length >= 4) {
+                        const position = inputs[0].value || '―';
+                        const before = inputs[1].value || '―';
+                        const after = inputs[2].value || '―';
+                        const judge = inputs[3].value || '―';
+                        outputHTML += `
+                            <tr>
+                                <td>${position}</td>
+                                <td>${before}</td>
+                                <td>${after}</td>
+                                <td>${judge}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                outputHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <strong style="color: #1e3c72;">偏心測定(軸心のずれ)</strong>
+                                <table class="measurement-print-table" style="margin-top: 10px;">
+                                    <thead>
+                                        <tr>
+                                            <th>測定位置</th>
+                                            <th>調整前 (mm)</th>
+                                            <th>調整後 (mm)</th>
+                                            <th>判定</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+
+                const eccentricityRows = document.querySelectorAll('#eccentricityTableBody tr');
+                eccentricityRows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    if (inputs.length >= 4) {
+                        const position = inputs[0].value || '―';
+                        const before = inputs[1].value || '―';
+                        const after = inputs[2].value || '―';
+                        const judge = inputs[3].value || '―';
+                        outputHTML += `
+                            <tr>
+                                <td>${position}</td>
+                                <td>${before}</td>
+                                <td>${after}</td>
+                                <td>${judge}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                outputHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                `;
+
+                const centeringNotes = document.getElementById('centeringNotes').value;
+                if (centeringNotes) {
+                    outputHTML += `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #1e3c72;">備考:</strong>
+                            <div class="text-content">${centeringNotes}</div>
+                        </div>
+                    `;
+                }
+
+                outputHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (document.getElementById('reportMeasurements').checked) {
+                const measurementRows = document.querySelectorAll('.measurement-row');
+                
+                let measurementsHTML = `
+                    <div class="output-section">
+                        <h3>■ 測定値・データ</h3>
+                        <div class="section-content">
+                            <table class="measurement-print-table">
+                                <thead>
+                                    <tr>
+                                        <th>測定項目</th>
+                                        <th>整備前</th>
+                                        <th>整備後</th>
+                                        <th>基準値</th>
+                                        <th>備考</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                measurementRows.forEach(row => {
+                    const item = row.querySelector('.measurementItem').value || '―';
+                    const before = row.querySelector('.measurementBefore').value || '―';
+                    const after = row.querySelector('.measurementAfter').value || '―';
+                    const standard = row.querySelector('.measurementStandard').value || '―';
+                    const note = row.querySelector('.measurementNote').value || '―';
+                    
+                    measurementsHTML += `<tr><td>${item}</td><td>${before}</td><td>${after}</td><td>${standard}</td><td>${note}</td></tr>`;
+                });
+                
+                measurementsHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                outputHTML += measurementsHTML;
+            }
+
+            if (document.getElementById('reportParts').checked) {
+                const partRows = document.querySelectorAll('.parts-row-5col');
+                let partsHTML = `
+                    <div class="output-section">
+                        <h3>■ 交換部品</h3>
+                        <div class="section-content">
+                            <table class="measurement-print-table">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>部品名</th>
+                                        <th>型番</th>
+                                        <th>図番</th>
+                                        <th>材質</th>
+                                        <th>数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                let hasParts = false;
+
+                partRows.forEach((row, index) => {
+                    const name = row.querySelector('.partName').value;
+                    const model = row.querySelector('.partModel').value;
+                    const drawing = row.querySelector('.partDrawing').value;
+                    const material = row.querySelector('.partMaterial').value;
+                    const quantity = row.querySelector('.partQuantity').value;
+                    
+                    if (name || model || drawing || material || quantity) {
+                        hasParts = true;
+                        partsHTML += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${name || '―'}</td>
+                                <td>${model || '―'}</td>
+                                <td>${drawing || '―'}</td>
+                                <td>${material || '―'}</td>
+                                <td>${quantity || '―'}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if (!hasParts) {
+                    partsHTML += '<tr><td colspan="6" style="text-align: center;">交換部品なし</td></tr>';
+                }
+                
+                partsHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                outputHTML += partsHTML;
+            }
+
+            if (document.getElementById('reportResults').checked) {
+                const judgment = document.getElementById('overallJudgment').value || '―';
+                let judgmentClass = '';
+                
+                if (judgment === '良好') {
+                    judgmentClass = 'judgment-good';
+                } else if (judgment === '要観察') {
+                    judgmentClass = 'judgment-watch';
+                } else if (judgment === '要修理' || judgment === '使用不可') {
+                    judgmentClass = 'judgment-repair';
+                }
+
+                const nextDate = document.getElementById('nextMaintenanceDate').value;
+                const formattedNextDate = nextDate ? new Date(nextDate).toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'}) : '―';
+                
+                outputHTML += `
+                    <div class="output-section">
+                        <h3>■ 整備結果・所見</h3>
+                        <div class="section-content">
+                `;
+
+                const details = document.getElementById('maintenanceDetails').value;
+                if (details) {
+                    outputHTML += `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1e3c72;">整備内容詳細:</strong>
+                            <div class="text-content">${details}</div>
+                        </div>
+                    `;
+                }
+
+                const issues = document.getElementById('issues').value;
+                if (issues) {
+                    outputHTML += `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1e3c72;">不具合内容:</strong>
+                            <div class="text-content">${issues}</div>
+                        </div>
+                    `;
+                }
+
+                const actions = document.getElementById('actions').value;
+                if (actions) {
+                    outputHTML += `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1e3c72;">対処内容:</strong>
+                            <div class="text-content">${actions}</div>
+                        </div>
+                    `;
+                }
+
+                const followUp = document.getElementById('followUp').value;
+                if (followUp) {
+                    outputHTML += `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1e3c72;">今後の対応事項:</strong>
+                            <div class="text-content">${followUp}</div>
+                        </div>
+                    `;
+                }
+
+                outputHTML += `
+                            <table class="output-table" style="margin-top: 15px;">
+                                <tr>
+                                    <td>総合判定</td>
+                                    <td><span class="judgment-box ${judgmentClass}">${judgment}</span></td>
+                                </tr>
+                                <tr>
+                                    <td>次回点検予定日</td>
+                                    <td>${formattedNextDate}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            outputHTML += `
+                <div class="print-footer">
+                    東亜工業株式会社
+                </div>
+            `;
+
+            outputHTML += `</div>`;
+
+            document.getElementById('output').innerHTML = outputHTML;
+            document.getElementById('output').style.display = 'block';
+            document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+            
+            showAlert('報告書を生成しました', 'success');
+        }
+
+        function printReport() {
+            const output = document.getElementById('output');
+            if (output.style.display === 'none' || !output.innerHTML) {
+                showAlert('先に報告書を生成してください', 'error');
+                return;
+            }
+            window.print();
+        }
+
+        function saveData() {
+            const data = {
+                maintenanceStartDate: document.getElementById('maintenanceStartDate').value,
+                maintenanceEndDate: document.getElementById('maintenanceEndDate').value,
+                workerName: document.getElementById('workerName').value,
+                supervisor: document.getElementById('supervisor').value,
+                workSite: document.getElementById('workSite').value,
+                area: document.getElementById('area').value,
+                constructionName: document.getElementById('constructionName').value,
+                clientContact: document.getElementById('clientContact').value,
+                projectNumber: document.getElementById('projectNumber').value,
+                machineType: document.getElementById('machineType').value,
+                machineName: document.getElementById('machineName').value,
+                model: document.getElementById('model').value,
+                serialNumber: document.getElementById('serialNumber').value,
+                ratedPower: document.getElementById('ratedPower').value,
+                location: document.getElementById('location').value,
+                machineFile: {
+                    data: uploadedMachineFileData,
+                    name: uploadedMachineFileName,
+                    type: uploadedMachineFileType
+                },
+                maintenanceType: document.getElementById('maintenanceType').value,
+                checkItems: [],
+                measurements: [],
+                parts: [],
+                maintenanceDetails: document.getElementById('maintenanceDetails').value,
+                issues: document.getElementById('issues').value,
+                actions: document.getElementById('actions').value,
+                followUp: document.getElementById('followUp').value,
+                overallJudgment: document.getElementById('overallJudgment').value,
+                nextMaintenanceDate: document.getElementById('nextMaintenanceDate').value,
+                coupling: {
+                    file: {
+                        data: uploadedCouplingFileData,
+                        name: uploadedCouplingFileName,
+                        type: uploadedCouplingFileType
+                    },
+                    allowableEccentricity: document.getElementById('allowableEccentricity').value,
+                    allowableAngle: document.getElementById('allowableAngle').value,
+                    faceGap: document.getElementById('faceGap').value,
+                    measuringInstrument: document.getElementById('measuringInstrument').value,
+                    faceMeasurements: [],
+                    eccentricityMeasurements: [],
+                    centeringNotes: document.getElementById('centeringNotes').value
+                },
+                reportFlags: {
+                    basic: document.getElementById('reportBasic').checked,
+                    machine: document.getElementById('reportMachine').checked,
+                    maintenance: document.getElementById('reportMaintenance').checked,
+                    coupling: document.getElementById('reportCoupling').checked,
+                    measurements: document.getElementById('reportMeasurements').checked,
+                    parts: document.getElementById('reportParts').checked,
+                    results: document.getElementById('reportResults').checked
+                }
+            };
+
+            const checkboxes = document.querySelectorAll('#checkboxGroup input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                data.checkItems.push({
+                    value: checkbox.value,
+                    checked: checkbox.checked
+                });
+            });
+
+            const measurementRows = document.querySelectorAll('.measurement-row');
+            measurementRows.forEach(row => {
+                data.measurements.push({
+                    id: row.getAttribute('data-id'),
+                    item: row.querySelector('.measurementItem').value,
+                    before: row.querySelector('.measurementBefore').value,
+                    after: row.querySelector('.measurementAfter').value,
+                    standard: row.querySelector('.measurementStandard').value,
+                    note: row.querySelector('.measurementNote').value
+                });
+            });
+
+            const faceRows = document.querySelectorAll('#faceTableBody tr');
+            faceRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length >= 4) {
+                    data.coupling.faceMeasurements.push({
+                        position: inputs[0].value,
+                        before: inputs[1].value,
+                        after: inputs[2].value,
+                        judge: inputs[3].value
+                    });
+                }
+            });
+
+            const eccentricityRows = document.querySelectorAll('#eccentricityTableBody tr');
+            eccentricityRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length >= 4) {
+                    data.coupling.eccentricityMeasurements.push({
+                        position: inputs[0].value,
+                        before: inputs[1].value,
+                        after: inputs[2].value,
+                        judge: inputs[3].value
+                    });
+                }
+            });
+
+            document.querySelectorAll('.parts-row-5col').forEach(row => {
+                const name = row.querySelector('.partName').value;
+                const model = row.querySelector('.partModel').value;
+                const drawing = row.querySelector('.partDrawing').value;
+                const material = row.querySelector('.partMaterial').value;
+                const quantity = row.querySelector('.partQuantity').value;
+                if (name || model || drawing || material || quantity) {
+                    data.parts.push({ name, model, drawing, material, quantity });
+                }
+            });
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const filename = `整備記録_${data.maintenanceStartDate}_${data.machineName || 'データ'}.json`;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showAlert('データを保存しました', 'success');
+        }
+
+        function loadData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        document.getElementById('maintenanceStartDate').value = data.maintenanceStartDate || '';
+                        document.getElementById('maintenanceEndDate').value = data.maintenanceEndDate || '';
+                        document.getElementById('workerName').value = data.workerName || '';
+                        document.getElementById('supervisor').value = data.supervisor || '';
+                        document.getElementById('workSite').value = data.workSite || '';
+                        document.getElementById('area').value = data.area || '';
+                        document.getElementById('constructionName').value = data.constructionName || '';
+                        document.getElementById('clientContact').value = data.clientContact || '';
+                        document.getElementById('projectNumber').value = data.projectNumber || '';
+
+                        document.getElementById('machineType').value = data.machineType || '';
+                        document.getElementById('machineName').value = data.machineName || '';
+                        document.getElementById('model').value = data.model || '';
+                        document.getElementById('serialNumber').value = data.serialNumber || '';
+                        document.getElementById('ratedPower').value = data.ratedPower || '';
+                        document.getElementById('location').value = data.location || '';
+
+                        // 機械ファイルデータの読み込み
+                        if (data.machineFile && data.machineFile.data && data.machineFile.name) {
+                            uploadedMachineFileData = data.machineFile.data;
+                            uploadedMachineFileName = data.machineFile.name;
+                            uploadedMachineFileType = data.machineFile.type || 'application/pdf';
+                            
+                            const container = document.getElementById('machineFilePreviewContainer');
+                            container.classList.add('has-file');
+                            
+                            if (uploadedMachineFileType === 'application/pdf') {
+                                container.innerHTML = `<embed src="${uploadedMachineFileData}" type="application/pdf" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 5px;">`;
+                            } else {
+                                container.innerHTML = `<img src="${uploadedMachineFileData}" alt="プレビュー" style="max-width: 100%; max-height: 400px; border-radius: 5px;">`;
+                            }
+                            
+                            const fileInfo = document.getElementById('machineFileInfo');
+                            fileInfo.classList.add('show');
+                            const fileIcon = uploadedMachineFileType === 'application/pdf' ? '📄' : '🖼️';
+                            fileInfo.innerHTML = `<strong>${fileIcon} ${uploadedMachineFileName}</strong>`;
+                        }
+
+                        document.getElementById('maintenanceType').value = data.maintenanceType || '';
+
+                        const checkboxGroup = document.getElementById('checkboxGroup');
+                        checkboxGroup.innerHTML = '';
+                        if (data.checkItems && data.checkItems.length > 0) {
+                            data.checkItems.forEach((item, idx) => {
+                                const newItem = document.createElement('div');
+                                newItem.className = 'checkbox-item';
+                                const checkId = 'check' + (idx + 1);
+                                newItem.innerHTML = `
+                                    <input type="checkbox" id="${checkId}" value="${item.value}" ${item.checked ? 'checked' : ''}>
+                                    <label for="${checkId}">${item.value}</label>
+                                `;
+                                checkboxGroup.appendChild(newItem);
+                            });
+                            customCheckCounter = data.checkItems.length + 1;
+                        }
+
+                        const tbody = document.getElementById('measurementTableBody');
+                        tbody.innerHTML = '';
+                        if (data.measurements && data.measurements.length > 0) {
+                            data.measurements.forEach((m, idx) => {
+                                const row = document.createElement('tr');
+                                row.className = 'measurement-row';
+                                row.setAttribute('draggable', 'true');
+                                row.setAttribute('data-id', m.id || 'custom' + idx);
+                                row.innerHTML = `
+                                    <td class="drag-handle"></td>
+                                    <td><input type="text" class="measurementItem" value="${m.item || ''}" style="border: 1px solid #e0e0e0;"></td>
+                                    <td><input type="text" class="measurementBefore" value="${m.before || ''}"></td>
+                                    <td><input type="text" class="measurementAfter" value="${m.after || ''}"></td>
+                                    <td><input type="text" class="measurementStandard" value="${m.standard || ''}"></td>
+                                    <td><input type="text" class="measurementNote" value="${m.note || ''}"></td>
+                                    <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                            measurementCounter = data.measurements.length + 1;
+                        }
+
+                        const container = document.getElementById('partsContainer');
+                        container.innerHTML = '';
+                        if (data.parts && data.parts.length > 0) {
+                            data.parts.forEach((part, idx) => {
+                                const row = document.createElement('div');
+                                row.className = 'parts-row-5col';
+                                const deleteBtn = idx > 0 ? '<button type="button" class="remove-btn" onclick="removePart(this)" style="margin: 0;">削除</button>' : '';
+                                row.innerHTML = `
+                                    <div class="form-group">
+                                        <label>部品名</label>
+                                        <input type="text" class="partName" value="${part.name || ''}" placeholder="例: メカニカルシール">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>型番</label>
+                                        <input type="text" class="partModel" value="${part.model || ''}" placeholder="例: MS-001">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>図番</label>
+                                        <input type="text" class="partDrawing" value="${part.drawing || ''}" placeholder="例: DWG-12345">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>材質</label>
+                                        <input type="text" class="partMaterial" value="${part.material || ''}" placeholder="例: SUS304">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>数量</label>
+                                        <div style="display: flex; gap: 5px;">
+                                            <input type="number" class="partQuantity" value="${part.quantity || ''}" placeholder="例: 1" style="flex: 1;">
+                                            ${deleteBtn}
+                                        </div>
+                                    </div>
+                                `;
+                                container.appendChild(row);
+                            });
+                        } else {
+                            const row = document.createElement('div');
+                            row.className = 'parts-row-5col';
+                            row.innerHTML = `
+                                <div class="form-group">
+                                    <label>部品名</label>
+                                    <input type="text" class="partName" placeholder="例: メカニカルシール">
+                                </div>
+                                <div class="form-group">
+                                    <label>型番</label>
+                                    <input type="text" class="partModel" placeholder="例: MS-001">
+                                </div>
+                                <div class="form-group">
+                                    <label>図番</label>
+                                    <input type="text" class="partDrawing" placeholder="例: DWG-12345">
+                                </div>
+                                <div class="form-group">
+                                    <label>材質</label>
+                                    <input type="text" class="partMaterial" placeholder="例: SUS304">
+                                </div>
+                                <div class="form-group">
+                                    <label>数量</label>
+                                    <input type="number" class="partQuantity" placeholder="例: 1">
+                                </div>
+                            `;
+                            container.appendChild(row);
+                        }
+
+                        if (data.coupling) {
+                            // カップリングファイルデータの読み込み
+                            if (data.coupling.file && data.coupling.file.data && data.coupling.file.name) {
+                                uploadedCouplingFileData = data.coupling.file.data;
+                                uploadedCouplingFileName = data.coupling.file.name;
+                                uploadedCouplingFileType = data.coupling.file.type || 'application/pdf';
+                                
+                                const container = document.getElementById('couplingFilePreviewContainer');
+                                container.classList.add('has-file');
+                                
+                                if (uploadedCouplingFileType === 'application/pdf') {
+                                    container.innerHTML = `<embed src="${uploadedCouplingFileData}" type="application/pdf" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 5px;">`;
+                                } else {
+                                    container.innerHTML = `<img src="${uploadedCouplingFileData}" alt="プレビュー" style="max-width: 100%; max-height: 400px; border-radius: 5px;">`;
+                                }
+                                
+                                const fileInfo = document.getElementById('couplingFileInfo');
+                                fileInfo.classList.add('show');
+                                const fileIcon = uploadedCouplingFileType === 'application/pdf' ? '📄' : '🖼️';
+                                fileInfo.innerHTML = `<strong>${fileIcon} ${uploadedCouplingFileName}</strong>`;
+                            }
+
+                            document.getElementById('allowableEccentricity').value = data.coupling.allowableEccentricity || '';
+                            document.getElementById('allowableAngle').value = data.coupling.allowableAngle || '';
+                            document.getElementById('faceGap').value = data.coupling.faceGap || '';
+                            document.getElementById('measuringInstrument').value = data.coupling.measuringInstrument || '';
+                            
+                            if (data.coupling.faceMeasurements && data.coupling.faceMeasurements.length > 0) {
+                                const faceTbody = document.getElementById('faceTableBody');
+                                faceTbody.innerHTML = '';
+                                data.coupling.faceMeasurements.forEach(fm => {
+                                    const row = document.createElement('tr');
+                                    row.className = 'centering-row';
+                                    row.setAttribute('draggable', 'true');
+                                    row.innerHTML = `
+                                        <td class="drag-handle"></td>
+                                        <td><input type="text" value="${fm.position || ''}" style="border: 1px solid #e0e0e0;"></td>
+                                        <td><input type="number" step="0.01" value="${fm.before || ''}"></td>
+                                        <td><input type="number" step="0.01" value="${fm.after || ''}"></td>
+                                        <td><input type="text" placeholder="合格/不合格" value="${fm.judge || ''}"></td>
+                                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                                    `;
+                                    faceTbody.appendChild(row);
+                                });
+                            }
+
+                            if (data.coupling.eccentricityMeasurements && data.coupling.eccentricityMeasurements.length > 0) {
+                                const eccentricityTbody = document.getElementById('eccentricityTableBody');
+                                eccentricityTbody.innerHTML = '';
+                                data.coupling.eccentricityMeasurements.forEach(em => {
+                                    const row = document.createElement('tr');
+                                    row.className = 'centering-row';
+                                    row.setAttribute('draggable', 'true');
+                                    row.innerHTML = `
+                                        <td class="drag-handle"></td>
+                                        <td><input type="text" value="${em.position || ''}" style="border: 1px solid #e0e0e0;"></td>
+                                        <td><input type="number" step="0.01" value="${em.before || ''}"></td>
+                                        <td><input type="number" step="0.01" value="${em.after || ''}"></td>
+                                        <td><input type="text" placeholder="合格/不合格" value="${em.judge || ''}"></td>
+                                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                                    `;
+                                    eccentricityTbody.appendChild(row);
+                                });
+                            }
+
+                            document.getElementById('centeringNotes').value = data.coupling.centeringNotes || '';
+                        }
+
+                        document.getElementById('maintenanceDetails').value = data.maintenanceDetails || '';
+                        document.getElementById('issues').value = data.issues || '';
+                        document.getElementById('actions').value = data.actions || '';
+                        document.getElementById('followUp').value = data.followUp || '';
+                        document.getElementById('overallJudgment').value = data.overallJudgment || '';
+                        document.getElementById('nextMaintenanceDate').value = data.nextMaintenanceDate || '';
+
+                        if (data.reportFlags) {
+                            document.getElementById('reportBasic').checked = data.reportFlags.basic !== false;
+                            document.getElementById('reportMachine').checked = data.reportFlags.machine !== false;
+                            document.getElementById('reportMaintenance').checked = data.reportFlags.maintenance !== false;
+                            document.getElementById('reportCoupling').checked = data.reportFlags.coupling || false;
+                            document.getElementById('reportMeasurements').checked = data.reportFlags.measurements !== false;
+                            document.getElementById('reportParts').checked = data.reportFlags.parts !== false;
+                            document.getElementById('reportResults').checked = data.reportFlags.results !== false;
+                        }
+
+                        initDragAndDrop();
+                        showAlert('データを読み込みました', 'success');
+                    } catch (error) {
+                        showAlert('データの読み込みに失敗しました: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function clearForm() {
+            if (confirm('入力内容をすべてクリアしますか?')) {
+                document.getElementById('maintenanceForm').reset();
+                document.getElementById('output').style.display = 'none';
+                document.getElementById('maintenanceStartDate').valueAsDate = new Date();
+                clearMachineFile();
+                clearCouplingFile();
+                
+                const checkboxGroup = document.getElementById('checkboxGroup');
+                checkboxGroup.innerHTML = `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check1" value="外観点検">
+                        <label for="check1">外観点検</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check2" value="異音・振動確認">
+                        <label for="check2">異音・振動確認</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check3" value="ベアリング点検">
+                        <label for="check3">ベアリング点検</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check4" value="シール交換">
+                        <label for="check4">シール交換</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check5" value="グリス補充">
+                        <label for="check5">グリス補充</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check6" value="オイル交換">
+                        <label for="check6">オイル交換</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check7" value="インペラ清掃">
+                        <label for="check7">インペラ清掃</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check8" value="電気系統点検">
+                        <label for="check8">電気系統点検</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check9" value="アライメント調整">
+                        <label for="check9">アライメント調整</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check10" value="試運転">
+                        <label for="check10">試運転</label>
+                    </div>
+                `;
+                customCheckCounter = 11;
+
+                const tbody = document.getElementById('measurementTableBody');
+                tbody.innerHTML = `
+                    <tr class="measurement-row" draggable="true" data-id="vib">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" class="measurementItem" value="振動値 (mm/s)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="text" class="measurementBefore" placeholder="例: 5.2"></td>
+                        <td><input type="text" class="measurementAfter" placeholder="例: 2.1"></td>
+                        <td><input type="text" class="measurementStandard" placeholder="例: <4.5"></td>
+                        <td><input type="text" class="measurementNote"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                    </tr>
+                    <tr class="measurement-row" draggable="true" data-id="temp">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" class="measurementItem" value="温度 (℃)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="text" class="measurementBefore" placeholder="例: 65"></td>
+                        <td><input type="text" class="measurementAfter" placeholder="例: 55"></td>
+                        <td><input type="text" class="measurementStandard" placeholder="例: <70"></td>
+                        <td><input type="text" class="measurementNote"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                    </tr>
+                    <tr class="measurement-row" draggable="true" data-id="current">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" class="measurementItem" value="電流値 (A)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="text" class="measurementBefore" placeholder="例: 32.5"></td>
+                        <td><input type="text" class="measurementAfter" placeholder="例: 28.0"></td>
+                        <td><input type="text" class="measurementStandard" placeholder="例: 25-35"></td>
+                        <td><input type="text" class="measurementNote"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>
+                    </tr>
+                `;
+                measurementCounter = 1;
+
+                const faceTbody = document.getElementById('faceTableBody');
+                faceTbody.innerHTML = `
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="0° (上部)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="90° (右側)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="180° (下部)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="270° (左側)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'face')">削除</button></td>
+                    </tr>
+                `;
+
+                const eccentricityTbody = document.getElementById('eccentricityTableBody');
+                eccentricityTbody.innerHTML = `
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="0° (上部)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="90° (右側)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="180° (下部)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                    </tr>
+                    <tr class="centering-row" draggable="true">
+                        <td class="drag-handle"></td>
+                        <td><input type="text" value="270° (左側)" style="border: 1px solid #e0e0e0;"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="number" step="0.01"></td>
+                        <td><input type="text" placeholder="合格/不合格"></td>
+                        <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this, 'eccentricity')">削除</button></td>
+                    </tr>
+                `;
+                
+                const container = document.getElementById('partsContainer');
+                container.innerHTML = `
+                    <div class="parts-row-5col">
+                        <div class="form-group">
+                            <label>部品名</label>
+                            <input type="text" class="partName" placeholder="例: メカニカルシール">
+                        </div>
+                        <div class="form-group">
+                            <label>型番</label>
+                            <input type="text" class="partModel" placeholder="例: MS-001">
+                        </div>
+                        <div class="form-group">
+                            <label>図番</label>
+                            <input type="text" class="partDrawing" placeholder="例: DWG-12345">
+                        </div>
+                        <div class="form-group">
+                            <label>材質</label>
+                            <input type="text" class="partMaterial" placeholder="例: SUS304">
+                        </div>
+                        <div class="form-group">
+                            <label>数量</label>
+                            <input type="number" class="partQuantity" placeholder="例: 1">
+                        </div>
+                    </div>
+                `;
+                
+                initDragAndDrop();
+                showAlert('フォームをクリアしました', 'info');
+            }
+        }
+    </script>
+    <!-- === Sheets 連携 モーダル === -->
+    <div class="gs-modal" id="gsSettingsModal" role="dialog" aria-modal="true">
+      <div class="gs-modal-card">
+        <button class="gs-modal-close" onclick="gsCloseModal('gsSettingsModal')" aria-label="閉じる">×</button>
+        <h3>⚙️ Google Sheets 連携 設定</h3>
+        <p style="color:#555;font-size:14px">写真アプリと同じ Client ID / Spreadsheet ID を入力してください。この端末に保存されます。</p>
+        <div class="gs-settings-grid">
+          <label>OAuth Client ID</label>
+          <input type="text" id="gsCfgClientId" placeholder="123456789-abc.apps.googleusercontent.com">
+          <label>Spreadsheet ID</label>
+          <input type="text" id="gsCfgSheetId" placeholder="スプレッドシートURLの /d/〜/edit の間">
+          <label>整備記録マスタ シート名</label>
+          <input type="text" id="gsCfgMaster" value="整備記録マスタ">
+          <label>点検項目 シート名</label>
+          <input type="text" id="gsCfgCheck" value="整備_点検項目">
+          <label>測定値 シート名</label>
+          <input type="text" id="gsCfgMeas" value="整備_測定値">
+          <label>交換部品 シート名</label>
+          <input type="text" id="gsCfgParts" value="整備_交換部品">
+          <label>面間測定 シート名</label>
+          <input type="text" id="gsCfgFace" value="整備_面間測定">
+          <label>偏心測定 シート名</label>
+          <input type="text" id="gsCfgEcc" value="整備_偏心測定">
+        </div>
+        <div class="gs-row" style="margin-top:14px;justify-content:flex-end">
+          <button class="gs-btn gs-btn-secondary" onclick="gsCloseModal('gsSettingsModal')">キャンセル</button>
+          <button class="gs-btn gs-btn-success" onclick="gsSaveSettings()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="gs-modal" id="gsListModal" role="dialog" aria-modal="true">
+      <div class="gs-modal-card">
+        <button class="gs-modal-close" onclick="gsCloseModal('gsListModal')" aria-label="閉じる">×</button>
+        <h3>📋 既存の整備記録を開く</h3>
+        <div class="gs-filter-bar">
+          <input type="text" id="gsFilterText" placeholder="🔍 現場名・機械名・工事番号で検索" oninput="gsRenderList()">
+          <select id="gsFilterJudge" onchange="gsRenderList()">
+            <option value="">総合判定すべて</option>
+            <option value="合格">合格</option>
+            <option value="要観察">要観察</option>
+            <option value="要修理">要修理</option>
+            <option value="不合格">不合格</option>
+          </select>
+          <button class="gs-btn gs-btn-secondary" onclick="gsReloadList()">🔄 再読込</button>
+        </div>
+        <div id="gsListArea" style="max-height:60vh;overflow:auto">
+          <p style="color:#666">読込中…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gs-toast" id="gsToast"></div>
+
+    <script>
+    const GS_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+    const GS_DISCOVERY = ['https://sheets.googleapis.com/$discovery/rest?version=v4'];
+    const GS_LS = 'gs_maint_config_v1';
+    const GS_LS_USER = 'gs_maint_user_v1';
+
+    const gsConfig = Object.assign({
+      clientId: '', sheetId: '',
+      masterSheet: '整備記録マスタ',
+      checkSheet: '整備_点検項目',
+      measSheet:  '整備_測定値',
+      partsSheet: '整備_交換部品',
+      faceSheet:  '整備_面間測定',
+      eccSheet:   '整備_偏心測定'
+    }, JSON.parse(localStorage.getItem(GS_LS) || '{}'));
+
+    let gsTokenClient = null;
+    let gsGapiReady = false;
+    let gsAccessToken = null;
+    let gsUserEmail = localStorage.getItem(GS_LS_USER) || '';
+    let gsCurrentRecordId = '';
+    let gsRecordList = [];
+
+    function gsToast(msg, type){
+      const el = document.getElementById('gsToast');
+      el.textContent = msg;
+      el.className = 'gs-toast ' + (type || '') + ' show';
+      clearTimeout(window._gsToastT);
+      window._gsToastT = setTimeout(()=>{ el.className = 'gs-toast ' + (type||''); }, 2800);
+    }
+
+    function gsInit(){
+      if (typeof gapi === 'undefined' || typeof google === 'undefined') {
+        setTimeout(gsInit, 500); return;
+      }
+      gapi.load('client', async () => {
+        try{ await gapi.client.init({ discoveryDocs: GS_DISCOVERY }); gsGapiReady = true; }
+        catch(e){ console.error(e); }
+      });
+      gsUpdateUI();
+    }
+    window.addEventListener('load', gsInit);
+
+    function gsUpdateUI(){
+      const loggedIn = !!gsAccessToken;
+      const setText = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      const setDis  = (id, v) => { const e = document.getElementById(id); if (e) e.disabled = v; };
+      setText('gsStatus',    loggedIn ? 'ログイン中 ✅' : '未ログイン');
+      setText('gsStatusTop', loggedIn ? 'ログイン中 ✅' : '未ログイン');
+      setText('gsUser',      loggedIn ? (gsUserEmail || '') : '');
+      setText('gsUserTop',   loggedIn ? (gsUserEmail || '') : '');
+      const lb = document.getElementById('gsLoginBtn');   if (lb) lb.style.display = loggedIn ? 'none' : '';
+      const lo = document.getElementById('gsLogoutBtn');  if (lo) lo.style.display = loggedIn ? '' : 'none';
+      setDis('gsSaveBtn',    !loggedIn || !gsConfig.sheetId);
+      setDis('gsSaveBtnTop', !loggedIn || !gsConfig.sheetId);
+      setDis('gsListBtn',    !loggedIn || !gsConfig.sheetId);
+      setDis('gsListBtnTop', !loggedIn || !gsConfig.sheetId);
+      setText('gsCurrentRecord', gsCurrentRecordId
+        ? ('編集中: ' + gsCurrentRecordId)
+        : (loggedIn ? '新規作成モード' : ''));
+    }
+
+    function gsOpenSettings(){
+      document.getElementById('gsCfgClientId').value = gsConfig.clientId || '';
+      document.getElementById('gsCfgSheetId').value  = gsConfig.sheetId  || '';
+      document.getElementById('gsCfgMaster').value = gsConfig.masterSheet;
+      document.getElementById('gsCfgCheck').value = gsConfig.checkSheet;
+      document.getElementById('gsCfgMeas').value  = gsConfig.measSheet;
+      document.getElementById('gsCfgParts').value = gsConfig.partsSheet;
+      document.getElementById('gsCfgFace').value  = gsConfig.faceSheet;
+      document.getElementById('gsCfgEcc').value   = gsConfig.eccSheet;
+      gsOpenModal('gsSettingsModal');
+    }
+    function gsSaveSettings(){
+      gsConfig.clientId    = document.getElementById('gsCfgClientId').value.trim();
+      gsConfig.sheetId     = document.getElementById('gsCfgSheetId').value.trim();
+      gsConfig.masterSheet = document.getElementById('gsCfgMaster').value.trim() || '整備記録マスタ';
+      gsConfig.checkSheet  = document.getElementById('gsCfgCheck').value.trim()  || '整備_点検項目';
+      gsConfig.measSheet   = document.getElementById('gsCfgMeas').value.trim()   || '整備_測定値';
+      gsConfig.partsSheet  = document.getElementById('gsCfgParts').value.trim()  || '整備_交換部品';
+      gsConfig.faceSheet   = document.getElementById('gsCfgFace').value.trim()   || '整備_面間測定';
+      gsConfig.eccSheet    = document.getElementById('gsCfgEcc').value.trim()    || '整備_偏心測定';
+      localStorage.setItem(GS_LS, JSON.stringify(gsConfig));
+      gsCloseModal('gsSettingsModal');
+      gsToast('設定を保存しました','success');
+      gsUpdateUI();
+    }
+    function gsOpenModal(id){ document.getElementById(id).classList.add('open'); }
+    function gsCloseModal(id){ document.getElementById(id).classList.remove('open'); }
+
+    function gsLogin(){
+      if (!gsConfig.clientId || !gsConfig.sheetId){
+        gsToast('先に設定から Client ID / Spreadsheet ID を入力してください','error');
+        gsOpenSettings(); return;
+      }
+      if (!gsTokenClient){
+        gsTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: gsConfig.clientId,
+          scope: GS_SCOPE,
+          callback: async (resp)=>{
+            if (resp.error){ gsToast('ログインに失敗: '+resp.error,'error'); return; }
+            gsAccessToken = resp.access_token;
+            gapi.client.setToken({ access_token: gsAccessToken });
+            try{
+              const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+gsAccessToken}});
+              const info = await r.json();
+              gsUserEmail = info.email || '';
+              localStorage.setItem(GS_LS_USER, gsUserEmail);
+            }catch(e){}
+            gsToast('ログインしました','success');
+            gsUpdateUI();
+            gsEnsureSheets().catch(e=>gsToast('シート初期化失敗: '+e.message,'error'));
+          }
+        });
+      }
+      gsTokenClient.requestAccessToken({ prompt: '' });
+    }
+    function gsLogout(){
+      if (gsAccessToken){ google.accounts.oauth2.revoke(gsAccessToken, ()=>{}); }
+      gsAccessToken = null;
+      gsCurrentRecordId = '';
+      gsToast('ログアウトしました','');
+      gsUpdateUI();
+    }
+
+    const GS_HEADERS = {
+      master: ['記録ID','作成日時','更新日時','作成者','整備開始日','整備終了日','作業者','作業責任者','現場名','エリア','工事名','発注者担当','工事番号','機械種別','機械名称','型式','製造番号','定格出力','設置場所','整備区分','整備内容','発生した不具合','対処内容','次回点検時の注意事項','総合判定','次回整備予定日','許容偏心','許容角度','基準面間距離','使用測定器','センタリング備考','レポートフラグ'],
+      check:  ['記録ID','行番号','項目名','チェック'],
+      meas:   ['記録ID','行番号','測定項目','整備前','整備後','基準値','備考'],
+      parts:  ['記録ID','行番号','部品名','型番','図番','材質','数量'],
+      face:   ['記録ID','行番号','測定位置','整備前','整備後','合否'],
+      ecc:    ['記録ID','行番号','測定位置','整備前','整備後','合否']
+    };
+
+    async function gsEnsureSheets(){
+      const sid = gsConfig.sheetId;
+      const meta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: sid });
+      const existing = new Set((meta.result.sheets||[]).map(s=>s.properties.title));
+      const needed = [
+        [gsConfig.masterSheet, 'master'],
+        [gsConfig.checkSheet,  'check'],
+        [gsConfig.measSheet,   'meas'],
+        [gsConfig.partsSheet,  'parts'],
+        [gsConfig.faceSheet,   'face'],
+        [gsConfig.eccSheet,    'ecc']
+      ];
+      const requests = [];
+      for (const [name, key] of needed){
+        if (!existing.has(name)){ requests.push({ addSheet:{ properties:{ title:name } } }); }
+      }
+      if (requests.length){
+        await gapi.client.sheets.spreadsheets.batchUpdate({ spreadsheetId: sid, resource:{ requests } });
+      }
+      for (const [name, key] of needed){
+        const rng = `${name}!A1:${String.fromCharCode(64 + GS_HEADERS[key].length)}1`;
+        try{
+          const r = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: sid, range: rng });
+          if (!r.result.values || !r.result.values.length){
+            await gapi.client.sheets.spreadsheets.values.update({
+              spreadsheetId: sid, range: rng, valueInputOption:'RAW',
+              resource:{ values:[ GS_HEADERS[key] ] }
+            });
+          }
+        }catch(e){}
+      }
+    }
+    </script>
+
+    <script>
+    function gsCollectForm(){
+      const v = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+      const c = id => { const e = document.getElementById(id); return e ? e.checked : false; };
+      const data = {
+        maintenanceStartDate: v('maintenanceStartDate'), maintenanceEndDate: v('maintenanceEndDate'),
+        workerName: v('workerName'), supervisor: v('supervisor'),
+        workSite: v('workSite'), area: v('area'), constructionName: v('constructionName'),
+        clientContact: v('clientContact'), projectNumber: v('projectNumber'),
+        machineType: v('machineType'), machineName: v('machineName'),
+        model: v('model'), serialNumber: v('serialNumber'),
+        ratedPower: v('ratedPower'), location: v('location'),
+        maintenanceType: v('maintenanceType'),
+        maintenanceDetails: v('maintenanceDetails'), issues: v('issues'),
+        actions: v('actions'), followUp: v('followUp'),
+        overallJudgment: v('overallJudgment'), nextMaintenanceDate: v('nextMaintenanceDate'),
+        allowableEccentricity: v('allowableEccentricity'), allowableAngle: v('allowableAngle'),
+        faceGap: v('faceGap'), measuringInstrument: v('measuringInstrument'),
+        centeringNotes: v('centeringNotes'),
+        reportFlags: {
+          basic: c('reportBasic'), machine: c('reportMachine'), maintenance: c('reportMaintenance'),
+          coupling: c('reportCoupling'), measurements: c('reportMeasurements'),
+          parts: c('reportParts'), results: c('reportResults')
+        },
+        checkItems: [], measurements: [], parts: [],
+        faceMeasurements: [], eccentricityMeasurements: []
+      };
+      document.querySelectorAll('#checkboxGroup input[type="checkbox"]').forEach(cb=>{
+        let label = cb.value || '';
+        const lab = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
+        if (lab){ label = lab.textContent.trim(); }
+        data.checkItems.push({ item: label, checked: cb.checked });
+      });
+      document.querySelectorAll('.measurement-row').forEach(row=>{
+        const get = sel => { const el = row.querySelector(sel); return el ? el.value : ''; };
+        data.measurements.push({
+          item: get('.measurementItem'), before: get('.measurementBefore'),
+          after: get('.measurementAfter'), standard: get('.measurementStandard'),
+          note: get('.measurementNote')
+        });
+      });
+      document.querySelectorAll('#faceTableBody tr').forEach(row=>{
+        const inputs = row.querySelectorAll('input');
+        if (inputs.length >= 4){
+          data.faceMeasurements.push({
+            position: inputs[0].value, before: inputs[1].value,
+            after: inputs[2].value, judge: inputs[3].value
+          });
+        }
+      });
+      document.querySelectorAll('#eccentricityTableBody tr').forEach(row=>{
+        const inputs = row.querySelectorAll('input');
+        if (inputs.length >= 4){
+          data.eccentricityMeasurements.push({
+            position: inputs[0].value, before: inputs[1].value,
+            after: inputs[2].value, judge: inputs[3].value
+          });
+        }
+      });
+      document.querySelectorAll('.parts-row-5col').forEach(row=>{
+        const get = sel => { const el = row.querySelector(sel); return el ? el.value : ''; };
+        const name = get('.partName'), model = get('.partModel'),
+              drawing = get('.partDrawing'), material = get('.partMaterial'),
+              quantity = get('.partQuantity');
+        if (name || model || drawing || material || quantity){
+          data.parts.push({ name, model, drawing, material, quantity });
+        }
+      });
+      return data;
+    }
+
+    function gsGenRecordId(){
+      const d = new Date();
+      const ts = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0')
+               + '-' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0');
+      const rand = Math.random().toString(36).slice(2,6).toUpperCase();
+      return 'M-' + ts + '-' + rand;
+    }
+
+    async function gsSaveToSheet(){
+      if (!gsAccessToken){ gsToast('先にログインしてください','error'); return; }
+      if (!gsConfig.sheetId){ gsToast('Spreadsheet ID が未設定です','error'); return; }
+      const btn = document.getElementById('gsSaveBtn');
+      const btn2 = document.getElementById('gsSaveBtnTop');
+      if (btn)  { btn.disabled = true;  btn.textContent = '☁️ 保存中…'; }
+      if (btn2) { btn2.disabled = true; btn2.textContent = '☁️ 保存中…'; }
+      try{
+        await gsEnsureSheets();
+        const d = gsCollectForm();
+        const nowIso = new Date().toISOString().replace('T',' ').slice(0,19);
+        const isNew = !gsCurrentRecordId;
+        if (isNew){ gsCurrentRecordId = gsGenRecordId(); }
+        const masterRow = [
+          gsCurrentRecordId, isNew ? nowIso : ((await gsGetCreatedAt(gsCurrentRecordId)) || nowIso),
+          nowIso, gsUserEmail,
+          d.maintenanceStartDate, d.maintenanceEndDate,
+          d.workerName, d.supervisor,
+          d.workSite, d.area, d.constructionName, d.clientContact, d.projectNumber,
+          d.machineType, d.machineName, d.model, d.serialNumber, d.ratedPower, d.location,
+          d.maintenanceType,
+          d.maintenanceDetails, d.issues, d.actions, d.followUp,
+          d.overallJudgment, d.nextMaintenanceDate,
+          d.allowableEccentricity, d.allowableAngle, d.faceGap, d.measuringInstrument,
+          d.centeringNotes,
+          JSON.stringify(d.reportFlags)
+        ];
+        const rowIdx = await gsFindRowIndex(gsConfig.masterSheet, gsCurrentRecordId);
+        if (rowIdx > 0){
+          await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId: gsConfig.sheetId,
+            range: `${gsConfig.masterSheet}!A${rowIdx}:${String.fromCharCode(64+masterRow.length)}${rowIdx}`,
+            valueInputOption:'USER_ENTERED',
+            resource:{ values:[masterRow] }
+          });
+        }else{
+          await gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: gsConfig.sheetId,
+            range: `${gsConfig.masterSheet}!A1`,
+            valueInputOption:'USER_ENTERED',
+            insertDataOption:'INSERT_ROWS',
+            resource:{ values:[masterRow] }
+          });
+        }
+        await gsDeleteRowsByRecordId(gsConfig.checkSheet, gsCurrentRecordId);
+        await gsDeleteRowsByRecordId(gsConfig.measSheet,  gsCurrentRecordId);
+        await gsDeleteRowsByRecordId(gsConfig.partsSheet, gsCurrentRecordId);
+        await gsDeleteRowsByRecordId(gsConfig.faceSheet,  gsCurrentRecordId);
+        await gsDeleteRowsByRecordId(gsConfig.eccSheet,   gsCurrentRecordId);
+
+        const appendIf = async (sheetName, rows) => {
+          if (!rows.length) return;
+          await gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: gsConfig.sheetId,
+            range: `${sheetName}!A1`,
+            valueInputOption:'USER_ENTERED',
+            insertDataOption:'INSERT_ROWS',
+            resource:{ values: rows }
+          });
+        };
+        await appendIf(gsConfig.checkSheet,
+          d.checkItems.map((r,i)=>[gsCurrentRecordId, i+1, r.item, r.checked ? 'TRUE' : 'FALSE']));
+        await appendIf(gsConfig.measSheet,
+          d.measurements.map((r,i)=>[gsCurrentRecordId, i+1, r.item, r.before, r.after, r.standard, r.note]));
+        await appendIf(gsConfig.partsSheet,
+          d.parts.map((r,i)=>[gsCurrentRecordId, i+1, r.name, r.model, r.drawing, r.material, r.quantity]));
+        await appendIf(gsConfig.faceSheet,
+          d.faceMeasurements.map((r,i)=>[gsCurrentRecordId, i+1, r.position, r.before, r.after, r.judge]));
+        await appendIf(gsConfig.eccSheet,
+          d.eccentricityMeasurements.map((r,i)=>[gsCurrentRecordId, i+1, r.position, r.before, r.after, r.judge]));
+
+        gsToast((isNew ? '新規作成' : '更新') + '完了: ' + gsCurrentRecordId, 'success');
+      }catch(e){
+        console.error(e);
+        gsToast('保存失敗: ' + ((e.result && e.result.error && e.result.error.message) || e.message || e), 'error');
+      }finally{
+        if (btn)  { btn.textContent = '☁️ スプレッドシートに保存'; }
+        if (btn2) { btn2.textContent = '☁️ 保存'; }
+        gsUpdateUI();
+      }
+    }
+
+    async function gsGetCreatedAt(recordId){
+      try{
+        const r = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: gsConfig.sheetId,
+          range: `${gsConfig.masterSheet}!A:C`
+        });
+        const rows = r.result.values || [];
+        for (let i=1;i<rows.length;i++){ if (rows[i][0] === recordId) return rows[i][1]; }
+      }catch(e){}
+      return null;
+    }
+
+    async function gsFindRowIndex(sheetName, recordId){
+      const r = await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: gsConfig.sheetId, range: `${sheetName}!A:A`
+      });
+      const col = r.result.values || [];
+      for (let i=0;i<col.length;i++){ if (col[i][0] === recordId) return i+1; }
+      return 0;
+    }
+
+    async function gsGetSheetId(sheetName){
+      const meta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: gsConfig.sheetId });
+      const s = (meta.result.sheets||[]).find(x=>x.properties.title === sheetName);
+      return s ? s.properties.sheetId : null;
+    }
+
+    async function gsDeleteRowsByRecordId(sheetName, recordId){
+      const r = await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: gsConfig.sheetId, range: `${sheetName}!A:A`
+      });
+      const col = r.result.values || [];
+      const rowsToDelete = [];
+      for (let i=1;i<col.length;i++){ if (col[i][0] === recordId) rowsToDelete.push(i); }
+      if (!rowsToDelete.length) return;
+      rowsToDelete.sort((a,b)=>b-a);
+      const sid = await gsGetSheetId(sheetName);
+      if (sid == null) return;
+      const requests = rowsToDelete.map(idx=>({
+        deleteDimension:{ range:{ sheetId: sid, dimension:'ROWS', startIndex: idx, endIndex: idx+1 } }
+      }));
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: gsConfig.sheetId, resource:{ requests }
+      });
+    }
+    </script>
+
+    <script>
+    async function gsOpenList(){
+      gsOpenModal('gsListModal');
+      await gsReloadList();
+    }
+    async function gsReloadList(){
+      const area = document.getElementById('gsListArea');
+      area.innerHTML = '<p style="color:#666">読込中…</p>';
+      try{
+        await gsEnsureSheets();
+        const r = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: gsConfig.sheetId,
+          range: `${gsConfig.masterSheet}!A1:AF10000`
+        });
+        const rows = r.result.values || [];
+        const header = rows[0] || [];
+        gsRecordList = rows.slice(1).map(row => {
+          const o = {};
+          header.forEach((h, i)=>{ o[h] = row[i] || ''; });
+          return o;
+        });
+        gsRenderList();
+      }catch(e){
+        area.innerHTML = '<p style="color:#c62828">読込失敗: ' + ((e.result && e.result.error && e.result.error.message) || e.message || e) + '</p>';
+      }
+    }
+    function gsRenderList(){
+      const q = (document.getElementById('gsFilterText').value || '').toLowerCase();
+      const jq = document.getElementById('gsFilterJudge').value || '';
+      const filtered = gsRecordList.filter(r=>{
+        if (jq && r['総合判定'] !== jq) return false;
+        if (!q) return true;
+        const hay = ((r['現場名']||'') + (r['機械名称']||'') + (r['工事番号']||'') + (r['記録ID']||'')).toLowerCase();
+        return hay.includes(q);
+      });
+      const area = document.getElementById('gsListArea');
+      if (!filtered.length){ area.innerHTML = '<p style="color:#666">該当なし</p>'; return; }
+      filtered.sort((a,b)=>(b['更新日時']||'').localeCompare(a['更新日時']||''));
+      let h = '<table class="gs-table"><thead><tr>'
+            + '<th>記録ID</th><th>整備日</th><th>現場名</th><th>機械名</th><th>工事番号</th><th>判定</th><th>操作</th>'
+            + '</tr></thead><tbody>';
+      filtered.forEach(r=>{
+        const id = r['記録ID']||'';
+        h += `<tr>
+          <td style="font-family:monospace;font-size:12px">${gsEsc(id)}</td>
+          <td>${gsEsc(r['整備開始日']||'')}</td>
+          <td>${gsEsc(r['現場名']||'')}</td>
+          <td>${gsEsc(r['機械名称']||'')}</td>
+          <td>${gsEsc(r['工事番号']||'')}</td>
+          <td>${gsEsc(r['総合判定']||'')}</td>
+          <td><button class="gs-btn gs-btn-primary" onclick="gsLoadRecord('${id}')">📂 開く</button></td>
+        </tr>`;
+      });
+      h += '</tbody></table>';
+      area.innerHTML = h;
+    }
+    function gsEsc(s){ return String(s||'').replace(/[<>&"']/g, ch => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+    async function gsLoadRecord(recordId){
+      try{
+        const master = gsRecordList.find(r=>r['記録ID']===recordId);
+        if (!master){ gsToast('マスタに該当レコードなし','error'); return; }
+        const set = (id,val) => { const e = document.getElementById(id); if (e){ e.value = val || ''; } };
+        set('maintenanceStartDate', master['整備開始日']);
+        set('maintenanceEndDate',   master['整備終了日']);
+        set('workerName',           master['作業者']);
+        set('supervisor',           master['作業責任者']);
+        set('workSite',             master['現場名']);
+        set('area',                 master['エリア']);
+        set('constructionName',     master['工事名']);
+        set('clientContact',        master['発注者担当']);
+        set('projectNumber',        master['工事番号']);
+        set('machineType',          master['機械種別']);
+        set('machineName',          master['機械名称']);
+        set('model',                master['型式']);
+        set('serialNumber',         master['製造番号']);
+        set('ratedPower',           master['定格出力']);
+        set('location',             master['設置場所']);
+        set('maintenanceType',      master['整備区分']);
+        set('maintenanceDetails',   master['整備内容']);
+        set('issues',               master['発生した不具合']);
+        set('actions',              master['対処内容']);
+        set('followUp',             master['次回点検時の注意事項']);
+        set('overallJudgment',      master['総合判定']);
+        set('nextMaintenanceDate',  master['次回整備予定日']);
+        set('allowableEccentricity',master['許容偏心']);
+        set('allowableAngle',       master['許容角度']);
+        set('faceGap',              master['基準面間距離']);
+        set('measuringInstrument',  master['使用測定器']);
+        set('centeringNotes',       master['センタリング備考']);
+        try{
+          const rf = JSON.parse(master['レポートフラグ'] || '{}');
+          const chk = (id,v) => { const e = document.getElementById(id); if (e) e.checked = !!v; };
+          chk('reportBasic', rf.basic); chk('reportMachine', rf.machine);
+          chk('reportMaintenance', rf.maintenance); chk('reportCoupling', rf.coupling);
+          chk('reportMeasurements', rf.measurements); chk('reportParts', rf.parts);
+          chk('reportResults', rf.results);
+        }catch(e){}
+
+        const fetchChild = async (name) => {
+          const r = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: gsConfig.sheetId, range: `${name}!A1:Z10000`
+          });
+          const rows = r.result.values || [];
+          const header = rows[0] || [];
+          return rows.slice(1).filter(row => row[0] === recordId).map(row=>{
+            const o = {}; header.forEach((h,i)=>{ o[h] = row[i]||''; }); return o;
+          });
+        };
+        const [chks, meas, parts, faces, eccs] = await Promise.all([
+          fetchChild(gsConfig.checkSheet), fetchChild(gsConfig.measSheet),
+          fetchChild(gsConfig.partsSheet), fetchChild(gsConfig.faceSheet),
+          fetchChild(gsConfig.eccSheet)
+        ]);
+
+        const cbs = document.querySelectorAll('#checkboxGroup input[type="checkbox"]');
+        const labelMap = new Map();
+        cbs.forEach(cb=>{
+          let label = cb.value || '';
+          const lab = cb.closest('label') || document.querySelector(`label[for="${cb.id}"]`);
+          if (lab){ label = lab.textContent.trim(); }
+          labelMap.set(label, cb);
+          cb.checked = false;
+        });
+        chks.sort((a,b)=>(+a['行番号']||0)-(+b['行番号']||0)).forEach(row=>{
+          const name = row['項目名']; const checked = (row['チェック']||'').toUpperCase() === 'TRUE';
+          if (labelMap.has(name)){ labelMap.get(name).checked = checked; }
+        });
+
+        gsRebuildMeasurements(meas.sort((a,b)=>(+a['行番号']||0)-(+b['行番号']||0)));
+        gsRebuildParts(parts.sort((a,b)=>(+a['行番号']||0)-(+b['行番号']||0)));
+        gsRebuildFace(faces.sort((a,b)=>(+a['行番号']||0)-(+b['行番号']||0)));
+        gsRebuildEcc(eccs.sort((a,b)=>(+a['行番号']||0)-(+b['行番号']||0)));
+
+        gsCurrentRecordId = recordId;
+        gsCloseModal('gsListModal');
+        gsToast('読込完了: ' + recordId, 'success');
+      }catch(e){
+        console.error(e);
+        gsToast('読込失敗: ' + ((e.result && e.result.error && e.result.error.message) || e.message || e), 'error');
+      }finally{
+        gsUpdateUI();
+      }
+    }
+
+    function gsRebuildMeasurements(rows){
+      const tbody = document.getElementById('measurementTableBody');
+      tbody.innerHTML = '';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.className = 'measurement-row';
+        tr.setAttribute('draggable','true');
+        tr.innerHTML = `
+          <td class="drag-handle"></td>
+          <td><input type="text" class="measurementItem" value="${gsEsc(r['測定項目'])}" style="border:1px solid #e0e0e0;"></td>
+          <td><input type="text" class="measurementBefore" value="${gsEsc(r['整備前'])}"></td>
+          <td><input type="text" class="measurementAfter" value="${gsEsc(r['整備後'])}"></td>
+          <td><input type="text" class="measurementStandard" value="${gsEsc(r['基準値'])}"></td>
+          <td><input type="text" class="measurementNote" value="${gsEsc(r['備考'])}"></td>
+          <td><button type="button" class="remove-measurement-btn" onclick="removeMeasurement(this)">削除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      if (!rows.length && typeof addMeasurement === 'function'){ addMeasurement(); }
+      if (typeof initDragAndDrop === 'function') initDragAndDrop();
+    }
+    function gsRebuildParts(rows){
+      const c = document.getElementById('partsContainer');
+      c.innerHTML = '';
+      rows.forEach(r=>{
+        const div = document.createElement('div');
+        div.className = 'parts-row-5col';
+        div.innerHTML = `
+          <div class="form-group"><label>部品名</label><input type="text" class="partName" value="${gsEsc(r['部品名'])}"></div>
+          <div class="form-group"><label>型番</label><input type="text" class="partModel" value="${gsEsc(r['型番'])}"></div>
+          <div class="form-group"><label>図番</label><input type="text" class="partDrawing" value="${gsEsc(r['図番'])}"></div>
+          <div class="form-group"><label>材質</label><input type="text" class="partMaterial" value="${gsEsc(r['材質'])}"></div>
+          <div class="form-group" style="display:flex;flex-direction:column;"><label>数量</label><div style="display:flex;gap:5px;"><input type="number" class="partQuantity" value="${gsEsc(r['数量'])}" style="flex:1;"><button type="button" class="remove-btn" onclick="removePart(this)" style="margin:0;">削除</button></div></div>`;
+        c.appendChild(div);
+      });
+      if (!rows.length && typeof addPart === 'function'){ addPart(); }
+    }
+    function gsRebuildFace(rows){
+      const tbody = document.getElementById('faceTableBody');
+      tbody.innerHTML = '';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.className = 'centering-row';
+        tr.setAttribute('draggable','true');
+        tr.innerHTML = `
+          <td class="drag-handle"></td>
+          <td><input type="text" value="${gsEsc(r['測定位置'])}" style="border:1px solid #e0e0e0;"></td>
+          <td><input type="number" step="0.01" value="${gsEsc(r['整備前'])}"></td>
+          <td><input type="number" step="0.01" value="${gsEsc(r['整備後'])}"></td>
+          <td><input type="text" value="${gsEsc(r['合否'])}"></td>
+          <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this,'face')">削除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      if (!rows.length && typeof addFaceMeasurement === 'function'){ addFaceMeasurement(); }
+      if (typeof initDragAndDrop === 'function') initDragAndDrop();
+    }
+    function gsRebuildEcc(rows){
+      const tbody = document.getElementById('eccentricityTableBody');
+      tbody.innerHTML = '';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.className = 'centering-row';
+        tr.setAttribute('draggable','true');
+        tr.innerHTML = `
+          <td class="drag-handle"></td>
+          <td><input type="text" value="${gsEsc(r['測定位置'])}" style="border:1px solid #e0e0e0;"></td>
+          <td><input type="number" step="0.01" value="${gsEsc(r['整備前'])}"></td>
+          <td><input type="number" step="0.01" value="${gsEsc(r['整備後'])}"></td>
+          <td><input type="text" value="${gsEsc(r['合否'])}"></td>
+          <td><button type="button" class="remove-measurement-btn" onclick="removeCenteringRow(this,'eccentricity')">削除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      if (!rows.length && typeof addEccentricityMeasurement === 'function'){ addEccentricityMeasurement(); }
+      if (typeof initDragAndDrop === 'function') initDragAndDrop();
+    }
+
+    function gsNewRecord(){
+      if (!confirm('現在のフォームをクリアして新規作成モードに切り替えますか？')) return;
+      gsCurrentRecordId = '';
+      if (typeof clearForm === 'function') clearForm();
+      gsUpdateUI();
+      gsToast('新規作成モードに切替','');
+    }
+    </script>
+
+</body>
+</html>
